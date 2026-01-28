@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Talmid {
+  id          String       @id @default(cuid())
+  nombre      String
+  apellido    String
+  activo      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  asistencias Asistencia[]
+
+  @@map("talmidim")
+}
+
+model Docente {
+  id        String   @id @default(cuid())
+  nombre    String
+  apellido  String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clases    Clase[]
+
+  @@map("docentes")
+}
+
+model Clase {
+  id          String       @id @default(cuid())
+  fecha       DateTime     @unique
+  diaSemana   String       // "martes" o "viernes"
+  horaInicio  String       // "18:30" o "17:30"
+  horaFin     String       // "20:30" o "21:00"
+  titulo      String?      // titulo/tema de la clase
+  docenteId   String?
+  cancelada   Boolean      @default(false)
+  motivo      String?      // motivo de cancelacion si aplica
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  docente     Docente?     @relation(fields: [docenteId], references: [id])
+  asistencias Asistencia[]
+
+  @@map("clases")
+}
+
+model Asistencia {
+  id            String   @id @default(cuid())
+  talmidId      String
+  claseId       String
+  estado        String   // "presente", "ausente", "tardanza"
+  justificacion String?  // obligatorio si estado = "ausente"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  talmid Talmid @relation(fields: [talmidId], references: [id], onDelete: Cascade)
+  clase  Clase  @relation(fields: [claseId], references: [id], onDelete: Cascade)
+
+  @@unique([talmidId, claseId])
+  @@map("asistencias")
+}
+
+model Feriado {
+  id     String   @id @default(cuid())
+  fecha  DateTime @unique
+  nombre String
+  tipo   String   // "argentino", "judio", "manual"
+
+  @@map("feriados")
+}
+
+model Config {
+  id       String @id @default(cuid())
+  clave    String @unique
+  valor    String
+
+  @@map("config")
+}
