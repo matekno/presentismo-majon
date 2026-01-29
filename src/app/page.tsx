@@ -74,6 +74,27 @@ export default function HomePage() {
             </div>
           </a>
 
+          {/* Talmidim */}
+          <a
+            href="/talmidim"
+            className="block bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition transform hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center">
+                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-800">Talmidim</h2>
+                <p className="text-gray-500">Fichas y datos de alumnos</p>
+              </div>
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </a>
+
           {/* Reportes */}
           <a
             href="/reportes"

@@ -8,15 +8,34 @@ datasource db {
 }
 
 model Talmid {
-  id          String       @id @default(cuid())
-  nombre      String
-  apellido    String
-  activo      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  asistencias Asistencia[]
+  id              String       @id @default(cuid())
+  nombre          String
+  apellido        String
+  fechaNacimiento DateTime?
+  telefono        String?
+  email           String?
+  fotoUrl         String?
+  activo          Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  asistencias     Asistencia[]
+  notas           Nota[]
 
   @@map("talmidim")
+}
+
+model Nota {
+  id        String   @id @default(cuid())
+  talmidId  String
+  categoria String   // "academico", "conducta", "salud", "general"
+  contenido String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  talmid Talmid @relation(fields: [talmidId], references: [id], onDelete: Cascade)
+
+  @@map("notas")
 }
 
 model Docente {
