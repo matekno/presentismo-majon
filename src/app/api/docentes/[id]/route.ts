@@ -49,7 +49,7 @@ export async function GET(
       : 0
 
     const ultimaClase = clasesDelDocente.length > 0
-      ? clasesDelDocente[0].clase.fecha
+      ? clasesDelDocente[0].clase.fecha.toISOString().split('T')[0]
       : null
 
     return NextResponse.json({

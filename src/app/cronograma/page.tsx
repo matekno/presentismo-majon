@@ -124,6 +124,7 @@ export default function CronogramaPage() {
   const [saving, setSaving] = useState(false)
   const [showDocenteForm, setShowDocenteForm] = useState(false)
   const [nuevoDocente, setNuevoDocente] = useState({ nombre: '', apellido: '', tipo: 'capacitador' })
+  const [docenteSearch, setDocenteSearch] = useState('')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -311,9 +312,14 @@ export default function CronogramaPage() {
 
   const dias = generarDiasCalendario(mesActual, clases, feriados)
 
-  // Separar docentes por tipo
-  const mejanjim = docentes.filter(d => d.tipo === 'mejanej')
-  const capacitadores = docentes.filter(d => d.tipo === 'capacitador')
+  // Filtrar y separar docentes por tipo
+  const filteredDocentes = docentes.filter(d => {
+    if (!docenteSearch.trim()) return true
+    const search = docenteSearch.toLowerCase()
+    return d.nombre.toLowerCase().includes(search) || d.apellido.toLowerCase().includes(search)
+  })
+  const mejanjim = filteredDocentes.filter(d => d.tipo === 'mejanej')
+  const capacitadores = filteredDocentes.filter(d => d.tipo === 'capacitador')
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -564,21 +570,54 @@ export default function CronogramaPage() {
                   </div>
                 )}
 
-                <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-3">
+                {/* Barra de búsqueda */}
+                <div className="relative mb-3">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={docenteSearch}
+                    onChange={(e) => setDocenteSearch(e.target.value)}
+                    placeholder="Buscar docente..."
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                  {docenteSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setDocenteSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                <div className="border rounded-lg max-h-64 overflow-y-auto">
                   {/* Mejanjim */}
                   {mejanjim.length > 0 && (
-                    <div>
-                      <div className="text-xs text-purple-600 font-medium mb-2">Mejanjim</div>
-                      <div className="space-y-1">
+                    <div className="border-b border-gray-200">
+                      <div className="bg-purple-50 px-3 py-2 sticky top-0">
+                        <span className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Mejanjim</span>
+                        <span className="ml-2 text-xs text-purple-500">({mejanjim.length})</span>
+                      </div>
+                      <div className="p-2 space-y-1">
                         {mejanjim.map(d => (
-                          <label key={d.id} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-1">
+                          <label key={d.id} className="flex items-center gap-3 py-2 px-2 cursor-pointer hover:bg-purple-50 rounded-lg transition">
                             <input
                               type="checkbox"
                               checked={formData.docenteIds.includes(d.id)}
                               onChange={() => toggleDocente(d.id)}
-                              className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                              className="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
                             />
-                            <span className="text-sm">{d.nombre} {d.apellido}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <span className="text-xs font-medium text-purple-600">{d.nombre[0]}{d.apellido[0]}</span>
+                              </div>
+                              <span className="text-sm font-medium text-gray-700">{d.nombre} {d.apellido}</span>
+                            </div>
                           </label>
                         ))}
                       </div>
@@ -588,17 +627,25 @@ export default function CronogramaPage() {
                   {/* Capacitadores */}
                   {capacitadores.length > 0 && (
                     <div>
-                      <div className="text-xs text-blue-600 font-medium mb-2">Capacitadores</div>
-                      <div className="space-y-1">
+                      <div className="bg-blue-50 px-3 py-2 sticky top-0">
+                        <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Capacitadores</span>
+                        <span className="ml-2 text-xs text-blue-500">({capacitadores.length})</span>
+                      </div>
+                      <div className="p-2 space-y-1">
                         {capacitadores.map(d => (
-                          <label key={d.id} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-1">
+                          <label key={d.id} className="flex items-center gap-3 py-2 px-2 cursor-pointer hover:bg-blue-50 rounded-lg transition">
                             <input
                               type="checkbox"
                               checked={formData.docenteIds.includes(d.id)}
                               onChange={() => toggleDocente(d.id)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                              className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                             />
-                            <span className="text-sm">{d.nombre} {d.apellido}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-xs font-medium text-blue-600">{d.nombre[0]}{d.apellido[0]}</span>
+                              </div>
+                              <span className="text-sm font-medium text-gray-700">{d.nombre} {d.apellido}</span>
+                            </div>
                           </label>
                         ))}
                       </div>
@@ -606,8 +653,14 @@ export default function CronogramaPage() {
                   )}
 
                   {docentes.length === 0 && (
-                    <div className="text-sm text-gray-500 text-center py-2">
+                    <div className="text-sm text-gray-500 text-center py-4">
                       No hay docentes registrados
+                    </div>
+                  )}
+
+                  {docentes.length > 0 && filteredDocentes.length === 0 && (
+                    <div className="text-sm text-gray-500 text-center py-4">
+                      No se encontraron docentes con "{docenteSearch}"
                     </div>
                   )}
                 </div>
