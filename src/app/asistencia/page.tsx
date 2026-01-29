@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
+interface Docente {
+  nombre: string
+  apellido: string
+  tipo: string
+}
+
 interface ClasePlanificada {
   id: string
   fecha: string
@@ -10,7 +16,7 @@ interface ClasePlanificada {
   horaInicio: string
   horaFin: string
   titulo: string | null
-  docente: { nombre: string; apellido: string } | null
+  docentes: Docente[]
   tieneAsistencias: boolean
   cantidadAsistencias: number
 }
@@ -122,7 +128,7 @@ export default function AsistenciaPage() {
               >
                 {clases.map((clase) => (
                   <option key={clase.id} value={clase.id}>
-                    {formatFecha(clase.fecha)} - {clase.titulo || clase.docente?.apellido || clase.diaSemana}
+                    {formatFecha(clase.fecha)} - {clase.titulo || clase.docentes?.map(d => d.apellido).join(', ') || clase.diaSemana}
                     {isHoy(clase.fecha) ? ' (HOY)' : ''}
                     {clase.tieneAsistencias ? ' ✓' : ''}
                   </option>
@@ -188,12 +194,12 @@ function ClaseSeleccionada({ clase }: { clase: ClasePlanificada }) {
         <p className="text-green-600 text-sm">
           {clase.horaInicio} - {clase.horaFin}
         </p>
-        {(clase.titulo || clase.docente) && (
+        {(clase.titulo || clase.docentes?.length > 0) && (
           <p className="text-green-700 mt-1">
             {clase.titulo && <span className="font-medium">{clase.titulo}</span>}
-            {clase.titulo && clase.docente && <span> - </span>}
-            {clase.docente && (
-              <span>{clase.docente.nombre} {clase.docente.apellido}</span>
+            {clase.titulo && clase.docentes?.length > 0 && <span> - </span>}
+            {clase.docentes?.length > 0 && (
+              <span>{clase.docentes.map(d => `${d.nombre} ${d.apellido}`).join(', ')}</span>
             )}
           </p>
         )}

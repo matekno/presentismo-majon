@@ -11,7 +11,11 @@ export async function GET(
     const clase = await prisma.clase.findUnique({
       where: { id },
       include: {
-        docente: true,
+        docentes: {
+          include: {
+            docente: true
+          }
+        },
         asistencias: {
           include: {
             talmid: true,
@@ -55,9 +59,11 @@ export async function GET(
         horaInicio: clase.horaInicio,
         horaFin: clase.horaFin,
         titulo: clase.titulo,
-        docente: clase.docente
-          ? { nombre: clase.docente.nombre, apellido: clase.docente.apellido }
-          : null,
+        docentes: clase.docentes.map(cd => ({
+          nombre: cd.docente.nombre,
+          apellido: cd.docente.apellido,
+          tipo: cd.docente.tipo
+        })),
         cancelada: clase.cancelada,
       },
       asistencias: listaAsistencia,

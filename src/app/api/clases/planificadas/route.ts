@@ -9,7 +9,11 @@ export async function GET() {
         cancelada: false,
       },
       include: {
-        docente: true,
+        docentes: {
+          include: {
+            docente: true
+          }
+        },
         _count: {
           select: { asistencias: true },
         },
@@ -51,9 +55,11 @@ export async function GET() {
         horaInicio: c.horaInicio,
         horaFin: c.horaFin,
         titulo: c.titulo,
-        docente: c.docente
-          ? { nombre: c.docente.nombre, apellido: c.docente.apellido }
-          : null,
+        docentes: c.docentes.map(cd => ({
+          nombre: cd.docente.nombre,
+          apellido: cd.docente.apellido,
+          tipo: cd.docente.tipo
+        })),
         tieneAsistencias: c._count.asistencias > 0,
         cantidadAsistencias: c._count.asistencias,
       })),

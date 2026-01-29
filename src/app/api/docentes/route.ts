@@ -5,10 +5,23 @@ export async function GET() {
   try {
     const docentes = await prisma.docente.findMany({
       where: { activo: true },
-      orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
+      orderBy: [{ tipo: 'asc' }, { apellido: 'asc' }, { nombre: 'asc' }],
+      include: {
+        _count: {
+          select: { clases: true }
+        }
+      }
     })
 
-    return NextResponse.json({ docentes })
+    return NextResponse.json({
+      docentes: docentes.map(d => ({
+        id: d.id,
+        nombre: d.nombre,
+        apellido: d.apellido,
+        tipo: d.tipo,
+        cantidadClases: d._count.clases
+      }))
+    })
   } catch (error) {
     console.error('Error fetching docentes:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
@@ -17,7 +30,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { nombre, apellido } = await request.json()
+    const { nombre, apellido, tipo = 'mejanej' } = await request.json()
 
     if (!nombre || !apellido) {
       return NextResponse.json(
@@ -26,11 +39,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validar tipo
+    if (!['mejanej', 'capacitador'].includes(tipo)) {
+      return NextResponse.json(
+        { error: 'Tipo debe ser "mejanej" o "capacitador"' },
+        { status: 400 }
+      )
+    }
+
     const docente = await prisma.docente.create({
-      data: { nombre, apellido },
+      data: { nombre, apellido, tipo },
     })
 
-    return NextResponse.json({ success: true, docente })
+    return NextResponse.json({
+      success: true,
+      docente: {
+        id: docente.id,
+        nombre: docente.nombre,
+        apellido: docente.apellido,
+        tipo: docente.tipo,
+        cantidadClases: 0
+      }
+    })
   } catch (error) {
     console.error('Error creating docente:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

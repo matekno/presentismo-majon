@@ -34,7 +34,11 @@ export async function GET(request: NextRequest) {
     const clases = await prisma.clase.findMany({
       where: whereClause,
       include: {
-        docente: true,
+        docentes: {
+          include: {
+            docente: true
+          }
+        },
         _count: {
           select: { asistencias: true },
         },
@@ -56,9 +60,13 @@ export async function GET(request: NextRequest) {
         horaInicio: c.horaInicio,
         horaFin: c.horaFin,
         titulo: c.titulo,
-        docente: c.docente
-          ? { id: c.docente.id, nombre: c.docente.nombre, apellido: c.docente.apellido }
-          : null,
+        // Nueva estructura: array de docentes
+        docentes: c.docentes.map(cd => ({
+          id: cd.docente.id,
+          nombre: cd.docente.nombre,
+          apellido: cd.docente.apellido,
+          tipo: cd.docente.tipo
+        })),
         cancelada: c.cancelada,
         motivo: c.motivo,
         tieneAsistencias: c._count.asistencias > 0,
@@ -78,7 +86,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { fecha, titulo, docenteId, horaInicio, horaFin } = await request.json()
+    const { fecha, titulo, docenteIds, horaInicio, horaFin } = await request.json()
 
     if (!fecha) {
       return NextResponse.json({ error: 'Fecha requerida' }, { status: 400 })
@@ -101,6 +109,9 @@ export async function POST(request: NextRequest) {
     const defaultHoraInicio = dayOfWeek === 2 ? '18:30' : '17:30'
     const defaultHoraFin = dayOfWeek === 2 ? '20:30' : '21:00'
 
+    // Normalizar docenteIds a array
+    const docenteIdsArray: string[] = Array.isArray(docenteIds) ? docenteIds : (docenteIds ? [docenteIds] : [])
+
     // Verificar si ya existe una clase en esa fecha
     const startOfDay = new Date(year, month - 1, day, 0, 0, 0)
     const endOfDay = new Date(year, month - 1, day, 23, 59, 59)
@@ -120,14 +131,38 @@ export async function POST(request: NextRequest) {
         where: { id: existingClase.id },
         data: {
           titulo: titulo || null,
-          docenteId: docenteId || null,
           horaInicio: horaInicio || defaultHoraInicio,
           horaFin: horaFin || defaultHoraFin,
         },
-        include: { docente: true },
       })
 
-      return NextResponse.json({ success: true, clase, updated: true })
+      // Actualizar relaciones de docentes
+      // 1. Eliminar docentes anteriores
+      await prisma.claseDocente.deleteMany({
+        where: { claseId: existingClase.id }
+      })
+
+      // 2. Crear nuevas relaciones
+      if (docenteIdsArray.length > 0) {
+        await prisma.claseDocente.createMany({
+          data: docenteIdsArray.map(docenteId => ({
+            claseId: existingClase.id,
+            docenteId
+          }))
+        })
+      }
+
+      // Obtener clase actualizada con docentes
+      const claseConDocentes = await prisma.clase.findUnique({
+        where: { id: clase.id },
+        include: {
+          docentes: {
+            include: { docente: true }
+          }
+        }
+      })
+
+      return NextResponse.json({ success: true, clase: claseConDocentes, updated: true })
     }
 
     // Crear nueva clase
@@ -138,9 +173,17 @@ export async function POST(request: NextRequest) {
         horaInicio: horaInicio || defaultHoraInicio,
         horaFin: horaFin || defaultHoraFin,
         titulo: titulo || null,
-        docenteId: docenteId || null,
+        docentes: docenteIdsArray.length > 0 ? {
+          create: docenteIdsArray.map(docenteId => ({
+            docenteId
+          }))
+        } : undefined
       },
-      include: { docente: true },
+      include: {
+        docentes: {
+          include: { docente: true }
+        }
+      },
     })
 
     return NextResponse.json({ success: true, clase, updated: false })

@@ -52,7 +52,11 @@ export async function GET(request: NextRequest) {
         },
       },
       include: {
-        docente: true,
+        docentes: {
+          include: {
+            docente: true
+          }
+        },
         asistencias: {
           include: {
             talmid: true,
@@ -72,7 +76,11 @@ export async function GET(request: NextRequest) {
           horaFin: horario.fin,
         },
         include: {
-          docente: true,
+          docentes: {
+            include: {
+              docente: true
+            }
+          },
           asistencias: {
             include: {
               talmid: true,
@@ -114,9 +122,11 @@ export async function GET(request: NextRequest) {
         horaInicio: clase.horaInicio,
         horaFin: clase.horaFin,
         titulo: clase.titulo,
-        docente: clase.docente
-          ? { nombre: clase.docente.nombre, apellido: clase.docente.apellido }
-          : null,
+        docentes: clase.docentes.map(cd => ({
+          nombre: cd.docente.nombre,
+          apellido: cd.docente.apellido,
+          tipo: cd.docente.tipo
+        })),
         cancelada: clase.cancelada,
         motivo: clase.motivo,
       },

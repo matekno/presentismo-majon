@@ -7,6 +7,7 @@ interface Docente {
   id: string
   nombre: string
   apellido: string
+  tipo: string
 }
 
 interface Clase {
@@ -16,7 +17,7 @@ interface Clase {
   horaInicio: string
   horaFin: string
   titulo: string | null
-  docente: Docente | null
+  docentes: Docente[]
   cancelada: boolean
   motivo: string | null
   tieneAsistencias: boolean
@@ -116,13 +117,13 @@ export default function CronogramaPage() {
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({
     titulo: '',
-    docenteId: '',
+    docenteIds: [] as string[],
     horaInicio: '',
     horaFin: '',
   })
   const [saving, setSaving] = useState(false)
   const [showDocenteForm, setShowDocenteForm] = useState(false)
-  const [nuevoDocente, setNuevoDocente] = useState({ nombre: '', apellido: '' })
+  const [nuevoDocente, setNuevoDocente] = useState({ nombre: '', apellido: '', tipo: 'capacitador' })
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -168,7 +169,7 @@ export default function CronogramaPage() {
     if (dia.clase) {
       setFormData({
         titulo: dia.clase.titulo || '',
-        docenteId: dia.clase.docente?.id || '',
+        docenteIds: dia.clase.docentes?.map(d => d.id) || [],
         horaInicio: dia.clase.horaInicio,
         horaFin: dia.clase.horaFin,
       })
@@ -180,12 +181,21 @@ export default function CronogramaPage() {
 
       setFormData({
         titulo: '',
-        docenteId: '',
+        docenteIds: [],
         horaInicio: isMartes ? '18:30' : '17:30',
         horaFin: isMartes ? '20:30' : '21:00',
       })
     }
     setShowModal(true)
+  }
+
+  const toggleDocente = (docenteId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      docenteIds: prev.docenteIds.includes(docenteId)
+        ? prev.docenteIds.filter(id => id !== docenteId)
+        : [...prev.docenteIds, docenteId]
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -200,7 +210,7 @@ export default function CronogramaPage() {
         body: JSON.stringify({
           fecha: selectedDia.fecha,
           titulo: formData.titulo || null,
-          docenteId: formData.docenteId || null,
+          docenteIds: formData.docenteIds,
           horaInicio: formData.horaInicio,
           horaFin: formData.horaFin,
         }),
@@ -208,9 +218,9 @@ export default function CronogramaPage() {
 
       if (res.ok) {
         const data = await res.json()
-        const docente = formData.docenteId
-          ? docentes.find(d => d.id === formData.docenteId) || null
-          : null
+        const docentesSeleccionados = formData.docenteIds
+          .map(id => docentes.find(d => d.id === id))
+          .filter((d): d is Docente => d !== undefined)
 
         const nuevaClase: Clase = {
           id: data.clase?.id || selectedDia.clase?.id || '',
@@ -219,7 +229,7 @@ export default function CronogramaPage() {
           horaInicio: formData.horaInicio,
           horaFin: formData.horaFin,
           titulo: formData.titulo || null,
-          docente,
+          docentes: docentesSeleccionados,
           cancelada: false,
           motivo: null,
           tieneAsistencias: selectedDia.clase?.tieneAsistencias || false,
@@ -290,8 +300,8 @@ export default function CronogramaPage() {
       if (res.ok) {
         const data = await res.json()
         setDocentes([...docentes, data.docente])
-        setFormData({ ...formData, docenteId: data.docente.id })
-        setNuevoDocente({ nombre: '', apellido: '' })
+        setFormData({ ...formData, docenteIds: [...formData.docenteIds, data.docente.id] })
+        setNuevoDocente({ nombre: '', apellido: '', tipo: 'capacitador' })
         setShowDocenteForm(false)
       }
     } catch (error) {
@@ -300,6 +310,10 @@ export default function CronogramaPage() {
   }
 
   const dias = generarDiasCalendario(mesActual, clases, feriados)
+
+  // Separar docentes por tipo
+  const mejanjim = docentes.filter(d => d.tipo === 'mejanej')
+  const capacitadores = docentes.filter(d => d.tipo === 'capacitador')
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -402,7 +416,9 @@ export default function CronogramaPage() {
                   {dia.clase && !dia.clase.cancelada && (
                     <div className="absolute bottom-1 left-1 right-1">
                       <div className="bg-blue-500 text-white text-xs rounded px-1 py-0.5 truncate">
-                        {dia.clase.titulo || dia.clase.docente?.apellido || 'Clase'}
+                        {dia.clase.titulo ||
+                         dia.clase.docentes?.map(d => d.apellido).join(', ') ||
+                         'Clase'}
                       </div>
                     </div>
                   )}
@@ -492,33 +508,21 @@ export default function CronogramaPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Docente
-                </label>
-                {!showDocenteForm ? (
-                  <div className="flex gap-2">
-                    <select
-                      value={formData.docenteId}
-                      onChange={(e) => setFormData({ ...formData, docenteId: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    >
-                      <option value="">Sin asignar</option>
-                      {docentes.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.nombre} {d.apellido}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setShowDocenteForm(true)}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600"
-                    >
-                      +
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2 bg-gray-50 p-3 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Docentes
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowDocenteForm(!showDocenteForm)}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    + Agregar nuevo
+                  </button>
+                </div>
+
+                {showDocenteForm && (
+                  <div className="space-y-2 bg-blue-50 p-3 rounded-lg mb-3">
                     <input
                       type="text"
                       value={nuevoDocente.nombre}
@@ -533,6 +537,14 @@ export default function CronogramaPage() {
                       placeholder="Apellido"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     />
+                    <select
+                      value={nuevoDocente.tipo}
+                      onChange={(e) => setNuevoDocente({ ...nuevoDocente, tipo: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="mejanej">Mejanej</option>
+                      <option value="capacitador">Capacitador</option>
+                    </select>
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -549,6 +561,60 @@ export default function CronogramaPage() {
                         Cancelar
                       </button>
                     </div>
+                  </div>
+                )}
+
+                <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-3">
+                  {/* Mejanjim */}
+                  {mejanjim.length > 0 && (
+                    <div>
+                      <div className="text-xs text-purple-600 font-medium mb-2">Mejanjim</div>
+                      <div className="space-y-1">
+                        {mejanjim.map(d => (
+                          <label key={d.id} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-1">
+                            <input
+                              type="checkbox"
+                              checked={formData.docenteIds.includes(d.id)}
+                              onChange={() => toggleDocente(d.id)}
+                              className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                            />
+                            <span className="text-sm">{d.nombre} {d.apellido}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Capacitadores */}
+                  {capacitadores.length > 0 && (
+                    <div>
+                      <div className="text-xs text-blue-600 font-medium mb-2">Capacitadores</div>
+                      <div className="space-y-1">
+                        {capacitadores.map(d => (
+                          <label key={d.id} className="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 rounded px-1">
+                            <input
+                              type="checkbox"
+                              checked={formData.docenteIds.includes(d.id)}
+                              onChange={() => toggleDocente(d.id)}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="text-sm">{d.nombre} {d.apellido}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {docentes.length === 0 && (
+                    <div className="text-sm text-gray-500 text-center py-2">
+                      No hay docentes registrados
+                    </div>
+                  )}
+                </div>
+
+                {formData.docenteIds.length > 0 && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    {formData.docenteIds.length} docente{formData.docenteIds.length > 1 ? 's' : ''} seleccionado{formData.docenteIds.length > 1 ? 's' : ''}
                   </div>
                 )}
               </div>

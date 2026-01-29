@@ -42,12 +42,27 @@ model Docente {
   id        String   @id @default(cuid())
   nombre    String
   apellido  String
+  tipo      String   @default("mejanej") // "mejanej" | "capacitador"
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  clases    Clase[]
+
+  clases ClaseDocente[]
 
   @@map("docentes")
+}
+
+model ClaseDocente {
+  id        String   @id @default(cuid())
+  claseId   String
+  docenteId String
+  createdAt DateTime @default(now())
+
+  clase   Clase   @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  docente Docente @relation(fields: [docenteId], references: [id], onDelete: Cascade)
+
+  @@unique([claseId, docenteId])
+  @@map("clase_docente")
 }
 
 model Clase {
@@ -57,13 +72,12 @@ model Clase {
   horaInicio  String       // "18:30" o "17:30"
   horaFin     String       // "20:30" o "21:00"
   titulo      String?      // titulo/tema de la clase
-  docenteId   String?
   cancelada   Boolean      @default(false)
   motivo      String?      // motivo de cancelacion si aplica
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  docente     Docente?     @relation(fields: [docenteId], references: [id])
+  docentes    ClaseDocente[]
   asistencias Asistencia[]
 
   @@map("clases")

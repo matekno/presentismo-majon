@@ -12,6 +12,12 @@ interface Asistencia {
   justificacion: string | null
 }
 
+interface Docente {
+  nombre: string
+  apellido: string
+  tipo: string
+}
+
 interface Clase {
   id: string
   fecha: string
@@ -19,7 +25,7 @@ interface Clase {
   horaInicio: string
   horaFin: string
   titulo: string | null
-  docente: { nombre: string; apellido: string } | null
+  docentes: Docente[]
   cancelada: boolean
 }
 
@@ -135,15 +141,15 @@ export default function TomarAsistenciaPage({
                   {clase.horaInicio} - {clase.horaFin}
                 </span>
               </div>
-              {(clase.titulo || clase.docente) && (
+              {(clase.titulo || clase.docentes?.length > 0) && (
                 <div className="mt-2 text-sm text-green-700">
                   {clase.titulo && (
                     <span className="font-medium">{clase.titulo}</span>
                   )}
-                  {clase.titulo && clase.docente && <span> - </span>}
-                  {clase.docente && (
+                  {clase.titulo && clase.docentes?.length > 0 && <span> - </span>}
+                  {clase.docentes?.length > 0 && (
                     <span>
-                      {clase.docente.nombre} {clase.docente.apellido}
+                      {clase.docentes.map(d => `${d.nombre} ${d.apellido}`).join(', ')}
                     </span>
                   )}
                 </div>
