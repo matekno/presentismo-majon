@@ -29,13 +29,30 @@ interface Estadisticas {
   ultimaClase: string | null
 }
 
-type Tab = 'info' | 'clases'
+interface FeedbackItem {
+  id: string
+  rating: number
+  comentario: string | null
+  fecha: string
+  claseTitulo: string | null
+  talmidNombre: string
+  createdAt: string
+}
+
+interface FeedbackStats {
+  promedio: number
+  cantidadFeedbacks: number
+  feedbacks: FeedbackItem[]
+}
+
+type Tab = 'info' | 'clases' | 'feedback'
 
 export default function DocenteFichaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [docente, setDocente] = useState<Docente | null>(null)
   const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null)
   const [clases, setClases] = useState<Clase[]>([])
+  const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('info')
   const [editing, setEditing] = useState(false)
@@ -44,6 +61,7 @@ export default function DocenteFichaPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     fetchDocente()
+    fetchFeedback()
   }, [id])
 
   const fetchDocente = async () => {
@@ -64,6 +82,18 @@ export default function DocenteFichaPage({ params }: { params: Promise<{ id: str
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchFeedback = async () => {
+    try {
+      const res = await fetch(`/api/feedback/docente/${id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setFeedbackStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching feedback:', error)
     }
   }
 
@@ -206,6 +236,16 @@ export default function DocenteFichaPage({ params }: { params: Promise<{ id: str
             }`}
           >
             Historial ({clases.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className={`flex-1 py-3 text-sm font-medium border-b-2 transition ${
+              activeTab === 'feedback'
+                ? 'border-purple-600 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Feedback {feedbackStats?.cantidadFeedbacks ? `(${feedbackStats.cantidadFeedbacks})` : ''}
           </button>
         </div>
       </div>
@@ -376,6 +416,64 @@ export default function DocenteFichaPage({ params }: { params: Promise<{ id: str
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'feedback' && (
+          <div className="space-y-4">
+            {/* Promedio */}
+            {feedbackStats && feedbackStats.cantidadFeedbacks > 0 && (
+              <div className="bg-white rounded-xl p-4 shadow-sm text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <span className="text-4xl font-bold text-pink-600">{feedbackStats.promedio}</span>
+                  <svg className="w-8 h-8 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 text-sm">Promedio de {feedbackStats.cantidadFeedbacks} evaluaciones</p>
+              </div>
+            )}
+
+            {/* Lista de feedbacks */}
+            {!feedbackStats || feedbackStats.feedbacks.length === 0 ? (
+              <div className="bg-white rounded-xl p-8 text-center shadow-sm">
+                <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <p className="text-gray-500">Aún no tiene evaluaciones</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {feedbackStats.feedbacks.map((fb) => (
+                  <div key={fb.id} className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-medium text-gray-800">{fb.talmidNombre}</p>
+                        <p className="text-xs text-gray-500">
+                          {fb.claseTitulo || 'Clase'} - {new Date(fb.fecha).toLocaleDateString('es-AR', {
+                            day: 'numeric',
+                            month: 'short'
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 bg-pink-50 px-2 py-1 rounded-lg">
+                        <span className="font-bold text-pink-600">{fb.rating}</span>
+                        <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                      </div>
+                    </div>
+                    {fb.comentario && (
+                      <p className="text-sm text-gray-600 italic bg-gray-50 p-2 rounded-lg">
+                        &ldquo;{fb.comentario}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
