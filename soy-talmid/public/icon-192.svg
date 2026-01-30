@@ -1,0 +1,6 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="40" fill="#10b981"/>
+  <path d="M96 40C96 40 56 70 56 100C56 122.091 74.909 140 96 140C117.091 140 136 122.091 136 100C136 70 96 40 96 40Z" fill="white" fill-opacity="0.9"/>
+  <path d="M96 60L100.944 74.556H116.18L103.618 83.389L108.562 98L96 89.167L83.438 98L88.382 83.389L75.82 74.556H91.056L96 60Z" fill="#10b981"/>
+  <text x="96" y="165" text-anchor="middle" fill="white" font-family="system-ui" font-size="20" font-weight="bold">TALMID</text>
+</svg>
