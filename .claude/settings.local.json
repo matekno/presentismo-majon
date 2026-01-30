@@ -7,7 +7,10 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: reorganizar como monorepo\n\nMover presentismo-majon a subcarpeta para preparar\nestructura de monorepo con la nueva app SoyTalmid.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npx prisma migrate:*)",
-      "Bash(npx prisma db push:*)"
+      "Bash(npx prisma db push:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: agregar app SoyTalmid para feedback de estudiantes\n\nNueva PWA para talmidim con:\n- Auto-registro con código de invitación\n- Login con email/contraseña\n- Sistema de feedback para clases y docentes\n- Historial de feedbacks dados\n- PWA instalable con Service Worker\n- Preparado para notificaciones push\n\nCambios en schema Prisma:\n- InviteCode: códigos de invitación\n- PushSubscription: suscripciones push\n- Feedback: evaluaciones de clase\n- NotificationQueue: cola de notificaciones\n- Campos auth en Talmid \\(passwordHash, lastLogin\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm run build:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
