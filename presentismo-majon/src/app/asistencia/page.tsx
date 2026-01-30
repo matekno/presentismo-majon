@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface Docente {
   nombre: string
@@ -25,6 +26,7 @@ export default function AsistenciaPage() {
   const [clases, setClases] = useState<ClasePlanificada[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedClaseId, setSelectedClaseId] = useState<string | null>(null)
+  const t = useTranslations()
 
   useEffect(() => {
     fetchClases()
@@ -85,9 +87,9 @@ export default function AsistenciaPage() {
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-green-200 hover:text-white">
-              ← Volver
+              {t('common.back')}
             </Link>
-            <h1 className="text-xl font-bold">Asistencia</h1>
+            <h1 className="text-xl font-bold">{t('asistencia.title')}</h1>
             <div className="w-16"></div>
           </div>
         </div>
@@ -98,20 +100,20 @@ export default function AsistenciaPage() {
         {loading ? (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-green-600 border-t-transparent"></div>
-            <p className="mt-2 text-gray-600">Cargando clases...</p>
+            <p className="mt-2 text-gray-600">{t('asistencia.loadingClasses')}</p>
           </div>
         ) : clases.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
             <div className="text-4xl mb-3">📅</div>
-            <h2 className="text-lg font-semibold text-yellow-800">No hay clases planificadas</h2>
+            <h2 className="text-lg font-semibold text-yellow-800">{t('asistencia.noClasses.title')}</h2>
             <p className="text-yellow-700 mt-1">
-              Primero agenda clases en el cronograma
+              {t('asistencia.noClasses.description')}
             </p>
             <Link
               href="/cronograma"
               className="inline-block mt-4 bg-yellow-600 hover:bg-yellow-700 text-white font-medium px-6 py-2 rounded-lg transition"
             >
-              Ir al cronograma
+              {t('asistencia.noClasses.action')}
             </Link>
           </div>
         ) : (
@@ -119,7 +121,7 @@ export default function AsistenciaPage() {
             {/* Selector de clase */}
             <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleccionar clase
+                {t('asistencia.selectClass')}
               </label>
               <select
                 value={selectedClaseId || ''}
@@ -129,7 +131,7 @@ export default function AsistenciaPage() {
                 {clases.map((clase) => (
                   <option key={clase.id} value={clase.id}>
                     {formatFecha(clase.fecha)} - {clase.titulo || clase.docentes?.map(d => d.apellido).join(', ') || clase.diaSemana}
-                    {isHoy(clase.fecha) ? ' (HOY)' : ''}
+                    {isHoy(clase.fecha) ? ` (${t('asistencia.today')})` : ''}
                     {clase.tieneAsistencias ? ' ✓' : ''}
                   </option>
                 ))}
@@ -174,6 +176,8 @@ export default function AsistenciaPage() {
 }
 
 function ClaseSeleccionada({ clase }: { clase: ClasePlanificada }) {
+  const t = useTranslations('asistencia')
+
   const formatFechaLarga = (fechaStr: string) => {
     const [year, month, day] = fechaStr.split('-').map(Number)
     const date = new Date(year, month - 1, day)
@@ -214,7 +218,7 @@ function ClaseSeleccionada({ clase }: { clase: ClasePlanificada }) {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-800">Asistencia tomada</p>
+              <p className="font-medium text-gray-800">{t('status.taken')}</p>
               <p className="text-sm text-gray-500">{clase.cantidadAsistencias} registros</p>
             </div>
           </div>
@@ -226,8 +230,8 @@ function ClaseSeleccionada({ clase }: { clase: ClasePlanificada }) {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-800">Pendiente</p>
-              <p className="text-sm text-gray-500">No se ha tomado lista</p>
+              <p className="font-medium text-gray-800">{t('status.pending')}</p>
+              <p className="text-sm text-gray-500">{t('status.pendingDescription')}</p>
             </div>
           </div>
         )}
@@ -236,7 +240,7 @@ function ClaseSeleccionada({ clase }: { clase: ClasePlanificada }) {
           href={`/asistencia/${clase.id}`}
           className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg text-center transition"
         >
-          {clase.tieneAsistencias ? 'Ver / Editar asistencia' : 'Tomar lista'}
+          {clase.tieneAsistencias ? t('viewEdit') : t('takeAttendance')}
         </Link>
       </div>
     </div>

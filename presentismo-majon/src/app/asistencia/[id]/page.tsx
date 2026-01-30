@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import AsistenciaItem from '@/components/AsistenciaItem'
 
 interface Asistencia {
@@ -39,6 +40,7 @@ export default function TomarAsistenciaPage({
   const [asistencias, setAsistencias] = useState<Asistencia[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const t = useTranslations()
 
   useEffect(() => {
     fetchClase()
@@ -50,14 +52,14 @@ export default function TomarAsistenciaPage({
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Error al cargar la clase')
+        setError(data.error || t('asistencia.error.loadClass'))
         return
       }
 
       setClase(data.clase)
       setAsistencias(data.asistencias || [])
     } catch {
-      setError('Error de conexion')
+      setError(t('common.error.connection'))
     } finally {
       setLoading(false)
     }
@@ -108,9 +110,9 @@ export default function TomarAsistenciaPage({
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/asistencia" className="text-green-200 hover:text-white">
-              ← Volver
+              {t('common.back')}
             </Link>
-            <h1 className="text-xl font-bold">Tomar lista</h1>
+            <h1 className="text-xl font-bold">{t('asistencia.takeAttendance')}</h1>
             <div className="w-16"></div>
           </div>
         </div>
@@ -121,7 +123,7 @@ export default function TomarAsistenciaPage({
         {loading ? (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-green-600 border-t-transparent"></div>
-            <p className="mt-2 text-gray-600">Cargando...</p>
+            <p className="mt-2 text-gray-600">{t('common.loading')}</p>
           </div>
         ) : error ? (
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-center">
@@ -162,25 +164,25 @@ export default function TomarAsistenciaPage({
                 <div className="text-2xl font-bold text-green-700">
                   {stats.presentes}
                 </div>
-                <div className="text-xs text-green-600">Presentes</div>
+                <div className="text-xs text-green-600">{t('asistencia.stats.present')}</div>
               </div>
               <div className="bg-yellow-100 rounded-lg p-3 text-center shadow-sm">
                 <div className="text-2xl font-bold text-yellow-700">
                   {stats.tardanzas}
                 </div>
-                <div className="text-xs text-yellow-600">Tardanzas</div>
+                <div className="text-xs text-yellow-600">{t('asistencia.stats.late')}</div>
               </div>
               <div className="bg-red-100 rounded-lg p-3 text-center shadow-sm">
                 <div className="text-2xl font-bold text-red-700">
                   {stats.ausentes}
                 </div>
-                <div className="text-xs text-red-600">Ausentes</div>
+                <div className="text-xs text-red-600">{t('asistencia.stats.absent')}</div>
               </div>
               <div className="bg-gray-200 rounded-lg p-3 text-center shadow-sm">
                 <div className="text-2xl font-bold text-gray-700">
                   {stats.sinMarcar}
                 </div>
-                <div className="text-xs text-gray-600">Sin marcar</div>
+                <div className="text-xs text-gray-600">{t('asistencia.stats.unmarked')}</div>
               </div>
             </div>
 
@@ -204,9 +206,9 @@ export default function TomarAsistenciaPage({
             {stats.sinMarcar === 0 && (
               <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4 text-center">
                 <div className="text-2xl mb-2">✅</div>
-                <p className="text-green-800 font-medium">Lista completa!</p>
+                <p className="text-green-800 font-medium">{t('asistencia.complete.title')}</p>
                 <p className="text-green-600 text-sm mt-1">
-                  Todos los alumnos fueron marcados
+                  {t('asistencia.complete.description')}
                 </p>
               </div>
             )}

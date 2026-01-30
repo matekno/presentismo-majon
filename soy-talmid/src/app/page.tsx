@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface ClasePendiente {
   id: string
@@ -15,6 +16,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [talmid, setTalmid] = useState<{ nombre: string; apellido: string } | null>(null)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const t = useTranslations()
 
   useEffect(() => {
     fetchData()
@@ -44,7 +46,7 @@ export default function HomePage() {
 
   async function handleEnableNotifications() {
     if (!('Notification' in window)) {
-      alert('Tu navegador no soporta notificaciones')
+      alert(t('home.notifications.notSupported'))
       return
     }
 
@@ -55,7 +57,7 @@ export default function HomePage() {
       try {
         const res = await fetch('/api/push/subscribe', { method: 'POST' })
         if (res.ok) {
-          alert('Notificaciones activadas')
+          alert(t('home.notifications.enabled'))
         }
       } catch (error) {
         console.error('Error subscribing:', error)
@@ -82,16 +84,16 @@ export default function HomePage() {
       <header className="bg-emerald-600 text-white p-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-bold">SoyTalmid</h1>
+            <h1 className="text-xl font-bold">{t('app.name')}</h1>
             {talmid && (
-              <p className="text-emerald-100 text-sm">Hola, {talmid.nombre}!</p>
+              <p className="text-emerald-100 text-sm">{t('home.greeting', { name: talmid.nombre })}</p>
             )}
           </div>
           <button
             onClick={handleLogout}
             className="text-emerald-100 hover:text-white text-sm"
           >
-            Salir
+            {t('common.logout')}
           </button>
         </div>
       </header>
@@ -101,13 +103,13 @@ export default function HomePage() {
         {!notificationsEnabled && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
             <p className="text-amber-800 text-sm mb-2">
-              Activar las notificaciones para recibir alertas cuando haya nuevas clases para evaluar.
+              {t('home.notifications.banner')}
             </p>
             <button
               onClick={handleEnableNotifications}
               className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600"
             >
-              Activar notificaciones
+              {t('home.notifications.enable')}
             </button>
           </div>
         )}
@@ -115,15 +117,15 @@ export default function HomePage() {
         {/* Clases pendientes de feedback */}
         <section>
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Clases pendientes de feedback
+            {t('home.pendingClasses.title')}
           </h2>
 
           {clasesPendientes.length === 0 ? (
             <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-gray-100">
               <div className="text-4xl mb-2">✨</div>
-              <p className="text-gray-600">No tienes clases pendientes de evaluar</p>
+              <p className="text-gray-600">{t('home.pendingClasses.empty')}</p>
               <Link href="/historial" className="text-emerald-600 text-sm mt-2 inline-block">
-                Ver mi historial →
+                {t('home.pendingClasses.viewHistory')}
               </Link>
             </div>
           ) : (
@@ -137,7 +139,7 @@ export default function HomePage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium text-gray-800">
-                        {clase.titulo || 'Clase'}
+                        {clase.titulo || t('common.class')}
                       </p>
                       <p className="text-sm text-gray-500">
                         {new Date(clase.fecha).toLocaleDateString('es-AR', {
@@ -153,7 +155,7 @@ export default function HomePage() {
                       )}
                     </div>
                     <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full">
-                      Pendiente
+                      {t('home.pendingClasses.pending')}
                     </span>
                   </div>
                 </Link>
@@ -168,7 +170,7 @@ export default function HomePage() {
             href="/historial"
             className="text-emerald-600 font-medium hover:text-emerald-700"
           >
-            Ver mi historial de feedback →
+            {t('home.historyLink')}
           </Link>
         </div>
       </main>
