@@ -10,6 +10,13 @@ interface Docente {
   tipo: string
 }
 
+interface Kita {
+  id: string
+  nombre: string
+  nombreDisplay: string
+  colorHex: string
+}
+
 interface Clase {
   id: string
   fecha: string
@@ -18,6 +25,8 @@ interface Clase {
   horaFin: string
   titulo: string | null
   docentes: Docente[]
+  kitot: Kita[]
+  esCompartida: boolean
   cancelada: boolean
   motivo: string | null
   tieneAsistencias: boolean
@@ -120,26 +129,46 @@ export default function CronogramaPage() {
     docenteIds: [] as string[],
     horaInicio: '',
     horaFin: '',
+    esCompartida: false,
+    kitaIds: [] as string[],
   })
+  const [kitot, setKitot] = useState<Kita[]>([])
+  const [currentKitaId, setCurrentKitaId] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [showDocenteForm, setShowDocenteForm] = useState(false)
   const [nuevoDocente, setNuevoDocente] = useState({ nombre: '', apellido: '', tipo: 'capacitador' })
   const [docenteSearch, setDocenteSearch] = useState('')
+  const [conflictos, setConflictos] = useState<Array<{
+    id: string
+    titulo: string | null
+    kitot: Kita[]
+    docentes: Array<{ nombre: string; apellido: string }>
+  }>>([])
+  const [checkingConflictos, setCheckingConflictos] = useState(false)
+  const [showConflictoWarning, setShowConflictoWarning] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [cronogramaRes, docentesRes] = await Promise.all([
+      const [cronogramaRes, docentesRes, kitotRes, sessionRes] = await Promise.all([
         fetch(`/api/cronograma?mes=${mesActual}`),
         fetch('/api/docentes'),
+        fetch('/api/kitot'),
+        fetch('/api/auth/session'),
       ])
 
       const cronogramaData = await cronogramaRes.json()
       const docentesData = await docentesRes.json()
+      const kitotData = await kitotRes.json()
+      const sessionData = await sessionRes.json()
 
       setClases(cronogramaData.clases || [])
       setFeriados(cronogramaData.feriados || [])
       setDocentes(docentesData.docentes || [])
+      setKitot(kitotData.kitot || [])
+      if (sessionData.kita) {
+        setCurrentKitaId(sessionData.kita.id)
+      }
     } catch (error) {
       console.error('Error:', error)
     } finally {
@@ -168,11 +197,14 @@ export default function CronogramaPage() {
 
     setSelectedDia(dia)
     if (dia.clase) {
+      const claseKitaIds = dia.clase.kitot?.map(k => k.id) || []
       setFormData({
         titulo: dia.clase.titulo || '',
         docenteIds: dia.clase.docentes?.map(d => d.id) || [],
         horaInicio: dia.clase.horaInicio,
         horaFin: dia.clase.horaFin,
+        esCompartida: dia.clase.esCompartida || false,
+        kitaIds: claseKitaIds,
       })
     } else {
       const [, , dayStr] = dia.fecha.split('-')
@@ -185,6 +217,8 @@ export default function CronogramaPage() {
         docenteIds: [],
         horaInicio: isMartes ? '18:30' : '17:30',
         horaFin: isMartes ? '20:30' : '21:00',
+        esCompartida: false,
+        kitaIds: [],
       })
     }
     setShowModal(true)
@@ -199,12 +233,77 @@ export default function CronogramaPage() {
     }))
   }
 
+  const toggleKita = async (kitaId: string) => {
+    // No permitir deseleccionar la kitá actual
+    if (kitaId === currentKitaId) return
+
+    const newKitaIds = formData.kitaIds.includes(kitaId)
+      ? formData.kitaIds.filter(id => id !== kitaId)
+      : [...formData.kitaIds, kitaId]
+
+    setFormData(prev => ({
+      ...prev,
+      kitaIds: newKitaIds
+    }))
+
+    // Verificar conflictos si se agregó una kitá
+    if (!formData.kitaIds.includes(kitaId) && selectedDia) {
+      await checkConflictos(selectedDia.fecha, newKitaIds)
+    } else {
+      // Si se quitó, limpiar conflictos
+      setConflictos([])
+      setShowConflictoWarning(false)
+    }
+  }
+
+  const handleToggleCompartida = (checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      esCompartida: checked,
+      // Si se activa, preseleccionar la kitá actual
+      kitaIds: checked ? [currentKitaId] : []
+    }))
+    // Limpiar conflictos al desactivar
+    if (!checked) {
+      setConflictos([])
+      setShowConflictoWarning(false)
+    }
+  }
+
+  const checkConflictos = async (fecha: string, kitaIds: string[]) => {
+    if (kitaIds.length <= 1) {
+      setConflictos([])
+      return
+    }
+
+    setCheckingConflictos(true)
+    try {
+      const res = await fetch('/api/cronograma/conflictos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha, kitaIds }),
+      })
+      const data = await res.json()
+      setConflictos(data.conflictos || [])
+      if (data.conflictos && data.conflictos.length > 0) {
+        setShowConflictoWarning(true)
+      }
+    } catch (error) {
+      console.error('Error verificando conflictos:', error)
+    } finally {
+      setCheckingConflictos(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedDia) return
 
     setSaving(true)
     try {
+      // Si es compartida, enviar kitaIds; si no, el backend usará la kitá actual
+      const kitaIds = formData.esCompartida ? formData.kitaIds : undefined
+
       const res = await fetch('/api/cronograma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -214,6 +313,7 @@ export default function CronogramaPage() {
           docenteIds: formData.docenteIds,
           horaInicio: formData.horaInicio,
           horaFin: formData.horaFin,
+          kitaIds,
         }),
       })
 
@@ -223,6 +323,11 @@ export default function CronogramaPage() {
           .map(id => docentes.find(d => d.id === id))
           .filter((d): d is Docente => d !== undefined)
 
+        // Determinar las kitot de la clase
+        const kitotSeleccionadas = formData.esCompartida
+          ? formData.kitaIds.map(id => kitot.find(k => k.id === id)).filter((k): k is Kita => k !== undefined)
+          : kitot.filter(k => k.id === currentKitaId)
+
         const nuevaClase: Clase = {
           id: data.clase?.id || selectedDia.clase?.id || '',
           fecha: selectedDia.fecha,
@@ -231,6 +336,8 @@ export default function CronogramaPage() {
           horaFin: formData.horaFin,
           titulo: formData.titulo || null,
           docentes: docentesSeleccionados,
+          kitot: kitotSeleccionadas,
+          esCompartida: kitotSeleccionadas.length > 1,
           cancelada: false,
           motivo: null,
           tieneAsistencias: selectedDia.clase?.tieneAsistencias || false,
@@ -426,6 +533,19 @@ export default function CronogramaPage() {
                          dia.clase.docentes?.map(d => d.apellido).join(', ') ||
                          'Clase'}
                       </div>
+                      {/* Indicador de clase compartida: puntos de colores */}
+                      {dia.clase.esCompartida && dia.clase.kitot && dia.clase.kitot.length > 1 && (
+                        <div className="flex justify-center gap-0.5 mt-0.5">
+                          {dia.clase.kitot.map(k => (
+                            <div
+                              key={k.id}
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: k.colorHex }}
+                              title={k.nombreDisplay}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -696,6 +816,87 @@ export default function CronogramaPage() {
                   />
                 </div>
               </div>
+
+              {/* Clase compartida */}
+              {kitot.length > 1 && (
+                <div className="border-t pt-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.esCompartida}
+                      onChange={(e) => handleToggleCompartida(e.target.checked)}
+                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Clase compartida entre kitot</span>
+                  </label>
+
+                  {formData.esCompartida && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {kitot.map(k => {
+                        const isSelected = formData.kitaIds.includes(k.id)
+                        const isCurrent = k.id === currentKitaId
+                        return (
+                          <button
+                            key={k.id}
+                            type="button"
+                            onClick={() => toggleKita(k.id)}
+                            disabled={isCurrent || checkingConflictos}
+                            className={`
+                              px-3 py-2 rounded-full text-sm font-medium transition-all
+                              ${isSelected
+                                ? 'text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              }
+                              ${isCurrent ? 'opacity-100 cursor-default' : 'cursor-pointer'}
+                            `}
+                            style={isSelected ? { backgroundColor: k.colorHex } : undefined}
+                          >
+                            {k.nombreDisplay}
+                            {isCurrent && <span className="ml-1 text-xs">(actual)</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Advertencia de conflictos */}
+                  {formData.esCompartida && conflictos.length > 0 && (
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="flex-1 text-sm">
+                          <p className="font-medium text-amber-800">
+                            {conflictos.length === 1 ? 'Ya existe una clase' : `Existen ${conflictos.length} clases`} para este día:
+                          </p>
+                          <ul className="mt-1 space-y-1">
+                            {conflictos.map(c => (
+                              <li key={c.id} className="text-amber-700">
+                                <span className="font-medium">{c.kitot.map(k => k.nombreDisplay).join(', ')}</span>
+                                {c.titulo && <span>: {c.titulo}</span>}
+                                {c.docentes.length > 0 && (
+                                  <span className="text-amber-600"> ({c.docentes.map(d => d.apellido).join(', ')})</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="mt-2 text-amber-600 text-xs">
+                            Podés continuar igualmente. Las clases coexistirán.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {checkingConflictos && (
+                    <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                      <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                      Verificando conflictos...
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-2 pt-4">
                 <button
