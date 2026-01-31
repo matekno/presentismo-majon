@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface DocenteRanking {
   id: string
@@ -31,6 +32,7 @@ export default function FeedbackPage() {
   const [docentesRanking, setDocentesRanking] = useState<DocenteRanking[]>([])
   const [feedbacksRecientes, setFeedbacksRecientes] = useState<FeedbackReciente[]>([])
   const [loading, setLoading] = useState(true)
+  const t = useTranslations()
 
   useEffect(() => {
     fetchFeedback()
@@ -69,10 +71,10 @@ export default function FeedbackPage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Volver
+            {t('common.back').replace('← ', '')}
           </Link>
-          <h1 className="text-3xl font-bold text-white">Feedback</h1>
-          <p className="text-pink-200">Evaluaciones de los talmidim</p>
+          <h1 className="text-3xl font-bold text-white">{t('feedback.title')}</h1>
+          <p className="text-pink-200">{t('feedback.subtitle')}</p>
         </div>
       </header>
 
@@ -82,7 +84,7 @@ export default function FeedbackPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
               <p className="text-3xl font-bold text-pink-600">{stats.totalFeedbacks}</p>
-              <p className="text-gray-500 text-sm">Feedbacks totales</p>
+              <p className="text-gray-500 text-sm">{t('feedback.stats.total')}</p>
             </div>
             <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
               <div className="flex items-center justify-center gap-1">
@@ -91,7 +93,7 @@ export default function FeedbackPage() {
                   <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                 </svg>
               </div>
-              <p className="text-gray-500 text-sm">Promedio clases</p>
+              <p className="text-gray-500 text-sm">{t('feedback.stats.classAverage')}</p>
             </div>
           </div>
         )}
@@ -103,7 +105,7 @@ export default function FeedbackPage() {
               <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
-              Ranking de docentes
+              {t('feedback.ranking.title')}
             </h2>
             <div className="space-y-3">
               {docentesRanking.map((docente, index) => (
@@ -125,7 +127,7 @@ export default function FeedbackPage() {
                       {docente.nombre} {docente.apellido}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {docente.cantidadFeedbacks} evaluaciones
+                      {docente.cantidadFeedbacks} {t('feedback.ranking.evaluations')}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 bg-pink-50 px-3 py-1 rounded-full">
@@ -146,13 +148,13 @@ export default function FeedbackPage() {
             <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
-            Feedbacks recientes
+            {t('feedback.recent.title')}
           </h2>
 
           {feedbacksRecientes.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-4xl mb-2">📝</div>
-              <p className="text-gray-500">Aún no hay feedbacks</p>
+              <p className="text-gray-500">{t('feedback.recent.empty')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -164,7 +166,7 @@ export default function FeedbackPage() {
                         {feedback.talmid.nombre} {feedback.talmid.apellido}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {feedback.clase.titulo || 'Clase'} - {new Date(feedback.clase.fecha).toLocaleDateString('es-AR', {
+                        {feedback.clase.titulo || t('cronograma.class')} - {new Date(feedback.clase.fecha).toLocaleDateString('es-AR', {
                           day: 'numeric',
                           month: 'short'
                         })}

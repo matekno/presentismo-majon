@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 type Estado = 'presente' | 'ausente' | 'tardanza' | null
 
@@ -28,6 +29,7 @@ export default function AsistenciaItem({
   const [showJustificacion, setShowJustificacion] = useState(false)
   const [pendingEstado, setPendingEstado] = useState<Estado>(null)
   const [saving, setSaving] = useState(false)
+  const t = useTranslations('asistenciaItem')
 
   const guardarAsistencia = async (nuevoEstado: Estado, justif: string | null = null) => {
     if (!nuevoEstado) return
@@ -130,21 +132,21 @@ export default function AsistenciaItem({
           disabled={saving}
           className={getButtonClass('presente')}
         >
-          Presente
+          {t('present')}
         </button>
         <button
           onClick={() => handleEstadoClick('tardanza')}
           disabled={saving}
           className={getButtonClass('tardanza')}
         >
-          Tardanza
+          {t('late')}
         </button>
         <button
           onClick={() => handleEstadoClick('ausente')}
           disabled={saving}
           className={getButtonClass('ausente')}
         >
-          Ausente
+          {t('absent')}
         </button>
       </div>
 
@@ -152,12 +154,12 @@ export default function AsistenciaItem({
       {showJustificacion && (
         <div className="mt-3 space-y-2 bg-red-50 p-3 rounded-lg border border-red-200">
           <label className="block text-sm font-medium text-red-800">
-            Justificacion de ausencia (requerida)
+            {t('justification.label')}
           </label>
           <textarea
             value={justificacion}
             onChange={(e) => setJustificacion(e.target.value)}
-            placeholder="Ej: Enfermo, viaje familiar, etc."
+            placeholder={t('justification.placeholder')}
             className="w-full px-3 py-2 border border-red-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
             rows={2}
             autoFocus
@@ -168,14 +170,14 @@ export default function AsistenciaItem({
               disabled={saving || !justificacion.trim()}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Guardando...' : 'Confirmar ausencia'}
+              {saving ? t('justification.confirming') : t('justification.confirm')}
             </button>
             <button
               onClick={handleCancelarAusencia}
               disabled={saving}
               className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded-lg"
             >
-              Cancelar
+              {t('justification.cancel')}
             </button>
           </div>
         </div>
@@ -184,7 +186,7 @@ export default function AsistenciaItem({
       {/* Mostrar justificacion existente */}
       {estado === 'ausente' && justificacion && !showJustificacion && (
         <div className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-          <span className="font-medium">Motivo:</span> {justificacion}
+          <span className="font-medium">{t('justification.reason')}</span> {justificacion}
         </div>
       )}
     </div>

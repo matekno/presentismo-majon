@@ -1,9 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 export default function HomePage() {
   const router = useRouter()
+  const t = useTranslations()
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -17,14 +19,14 @@ export default function HomePage() {
       <header className="pt-8 pb-4 px-4">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Presentismo</h1>
-            <p className="text-blue-200 text-lg">Majon</p>
+            <h1 className="text-3xl font-bold text-white">{t('app.name')}</h1>
+            <p className="text-blue-200 text-sm mt-1">{t('app.slogan')}</p>
           </div>
           <button
             onClick={handleLogout}
             className="text-blue-300 hover:text-white text-sm px-3 py-2 rounded-lg hover:bg-white/10 transition"
           >
-            Salir
+            {t('common.logout')}
           </button>
         </div>
       </header>
@@ -44,8 +46,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-800">Asistencia</h2>
-                <p className="text-gray-500">Tomar lista de la clase</p>
+                <h2 className="text-xl font-bold text-gray-800">{t('home.modules.asistencia.title')}</h2>
+                <p className="text-gray-500">{t('home.modules.asistencia.description')}</p>
               </div>
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -65,8 +67,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-800">Cronograma</h2>
-                <p className="text-gray-500">Planificar clases</p>
+                <h2 className="text-xl font-bold text-gray-800">{t('home.modules.cronograma.title')}</h2>
+                <p className="text-gray-500">{t('home.modules.cronograma.description')}</p>
               </div>
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -86,8 +88,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-800">Talmidim</h2>
-                <p className="text-gray-500">Fichas y datos de alumnos</p>
+                <h2 className="text-xl font-bold text-gray-800">{t('home.modules.talmidim.title')}</h2>
+                <p className="text-gray-500">{t('home.modules.talmidim.description')}</p>
               </div>
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -107,8 +109,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-800">Docentes</h2>
-                <p className="text-gray-500">Mejanjim y capacitadores</p>
+                <h2 className="text-xl font-bold text-gray-800">{t('home.modules.docentes.title')}</h2>
+                <p className="text-gray-500">{t('home.modules.docentes.description')}</p>
               </div>
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -128,8 +130,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-800">Reportes</h2>
-                <p className="text-gray-500">Ver estadisticas de asistencia</p>
+                <h2 className="text-xl font-bold text-gray-800">{t('home.modules.reportes.title')}</h2>
+                <p className="text-gray-500">{t('home.modules.reportes.description')}</p>
               </div>
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -149,8 +151,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-800">Feedback</h2>
-                <p className="text-gray-500">Evaluaciones de talmidim</p>
+                <h2 className="text-xl font-bold text-gray-800">{t('home.modules.feedback.title')}</h2>
+                <p className="text-gray-500">{t('home.modules.feedback.description')}</p>
               </div>
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -170,7 +172,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-gray-800">Feriados y excepciones</h2>
+                <h2 className="text-lg font-semibold text-gray-800">{t('home.modules.feriados.title')}</h2>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

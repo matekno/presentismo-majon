@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface Docente {
   id: string
@@ -29,6 +30,8 @@ export default function FeedbackPage() {
   const params = useParams()
   const router = useRouter()
   const claseId = params.claseId as string
+  const t = useTranslations('feedback')
+  const tCommon = useTranslations('common')
 
   const [clase, setClase] = useState<Clase | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,7 +57,7 @@ export default function FeedbackPage() {
           router.push('/?message=already_submitted')
           return
         }
-        setError(data.error || 'Error al cargar la clase')
+        setError(data.error || t('error.send'))
         return
       }
 
@@ -68,7 +71,7 @@ export default function FeedbackPage() {
         }))
       )
     } catch {
-      setError('Error de conexión')
+      setError(t('error.connection'))
     } finally {
       setLoading(false)
     }
@@ -94,7 +97,7 @@ export default function FeedbackPage() {
     e.preventDefault()
 
     if (claseRating === 0) {
-      setError('Por favor califica la clase')
+      setError(t('error.rateClass'))
       return
     }
 
@@ -116,13 +119,13 @@ export default function FeedbackPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Error al enviar feedback')
+        setError(data.error || t('error.send'))
         return
       }
 
       router.push('/?message=feedback_sent')
     } catch {
-      setError('Error de conexión')
+      setError(t('error.connection'))
     } finally {
       setSubmitting(false)
     }
@@ -143,7 +146,7 @@ export default function FeedbackPage() {
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
             <p className="text-red-800">{error}</p>
             <Link href="/" className="text-emerald-600 mt-4 inline-block">
-              ← Volver al inicio
+              {tCommon('backToHome')}
             </Link>
           </div>
         </div>
@@ -164,7 +167,7 @@ export default function FeedbackPage() {
             </svg>
           </Link>
           <div>
-            <h1 className="font-semibold">Dar feedback</h1>
+            <h1 className="font-semibold">{t('title')}</h1>
             <p className="text-emerald-100 text-sm">
               {new Date(clase.fecha).toLocaleDateString('es-AR', {
                 weekday: 'long',
@@ -180,7 +183,7 @@ export default function FeedbackPage() {
         {/* Clase info */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <h2 className="font-medium text-gray-800 mb-1">
-            {clase.titulo || 'Clase de ' + clase.diaSemana}
+            {clase.titulo || tCommon('class') + ' de ' + clase.diaSemana}
           </h2>
           {clase.docentes.length > 0 && (
             <p className="text-sm text-gray-500">
@@ -191,12 +194,12 @@ export default function FeedbackPage() {
 
         {/* Rating de la clase */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <h3 className="font-medium text-gray-800 mb-3">¿Cómo estuvo la clase?</h3>
+          <h3 className="font-medium text-gray-800 mb-3">{t('classQuestion')}</h3>
           <StarRating value={claseRating} onChange={setClaseRating} />
           <textarea
             value={claseComentario}
             onChange={(e) => setClaseComentario(e.target.value)}
-            placeholder="Comentarios sobre la clase (opcional)"
+            placeholder={t('classCommentPlaceholder')}
             className="w-full mt-4 px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             rows={3}
           />
@@ -205,7 +208,7 @@ export default function FeedbackPage() {
         {/* Rating de docentes */}
         {clase.docentes.length > 0 && (
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <h3 className="font-medium text-gray-800 mb-4">Evaluar docentes</h3>
+            <h3 className="font-medium text-gray-800 mb-4">{t('docentesSection')}</h3>
             <div className="space-y-6">
               {clase.docentes.map((docente) => {
                 const feedback = docentesFeedback.find(df => df.docenteId === docente.id)
@@ -228,7 +231,7 @@ export default function FeedbackPage() {
                       type="text"
                       value={feedback?.comentario || ''}
                       onChange={(e) => updateDocenteComentario(docente.id, e.target.value)}
-                      placeholder="Comentario (opcional)"
+                      placeholder={t('docenteCommentPlaceholder')}
                       className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     />
                   </div>
@@ -248,7 +251,7 @@ export default function FeedbackPage() {
           disabled={submitting || claseRating === 0}
           className="w-full bg-emerald-600 text-white py-4 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
         >
-          {submitting ? 'Enviando...' : 'Enviar feedback'}
+          {submitting ? t('submitting') : t('submit')}
         </button>
       </form>
     </div>

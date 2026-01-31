@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface Reporte {
   id: string
@@ -30,6 +31,7 @@ export default function ReportesPage() {
   const [loading, setLoading] = useState(true)
   const [selectedTalmid, setSelectedTalmid] = useState<string | null>(null)
   const [historial, setHistorial] = useState<Reporte['historial'] | null>(null)
+  const t = useTranslations()
 
   useEffect(() => {
     fetchReportes()
@@ -100,9 +102,9 @@ export default function ReportesPage() {
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-blue-200 hover:text-white">
-              ← Volver
+              {t('common.back')}
             </Link>
-            <h1 className="text-xl font-bold">Reportes</h1>
+            <h1 className="text-xl font-bold">{t('reportes.title')}</h1>
             <div className="w-16"></div>
           </div>
         </div>
@@ -113,7 +115,7 @@ export default function ReportesPage() {
         {loading ? (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-            <p className="mt-2 text-gray-600">Cargando reportes...</p>
+            <p className="mt-2 text-gray-600">{t('reportes.loading')}</p>
           </div>
         ) : data ? (
           <>
@@ -121,7 +123,7 @@ export default function ReportesPage() {
             <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-700">{data.totalClases}</div>
-                <div className="text-gray-600">Clases registradas</div>
+                <div className="text-gray-600">{t('reportes.stats.totalClasses')}</div>
               </div>
             </div>
 
@@ -151,13 +153,13 @@ export default function ReportesPage() {
 
                     <div className="mt-3 flex gap-4 text-sm">
                       <div className="text-green-600">
-                        <span className="font-semibold">{reporte.presentes}</span> presentes
+                        <span className="font-semibold">{reporte.presentes}</span> {t('reportes.stats.present')}
                       </div>
                       <div className="text-yellow-600">
-                        <span className="font-semibold">{reporte.tardanzas}</span> tardanzas
+                        <span className="font-semibold">{reporte.tardanzas}</span> {t('reportes.stats.late')}
                       </div>
                       <div className="text-red-600">
-                        <span className="font-semibold">{reporte.ausentes}</span> ausentes
+                        <span className="font-semibold">{reporte.ausentes}</span> {t('reportes.stats.absent')}
                       </div>
                     </div>
 
@@ -169,9 +171,9 @@ export default function ReportesPage() {
                   {/* Historial expandido */}
                   {selectedTalmid === reporte.id && historial && (
                     <div className="bg-gray-50 rounded-b-xl p-4 -mt-2 border-t border-gray-200">
-                      <h3 className="font-semibold text-gray-700 mb-3">Historial</h3>
+                      <h3 className="font-semibold text-gray-700 mb-3">{t('reportes.history.title')}</h3>
                       {historial.length === 0 ? (
-                        <p className="text-gray-500 text-sm">Sin registros</p>
+                        <p className="text-gray-500 text-sm">{t('reportes.history.empty')}</p>
                       ) : (
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                           {historial.map((item, index) => (
@@ -205,7 +207,7 @@ export default function ReportesPage() {
             </div>
           </>
         ) : (
-          <div className="text-center text-gray-600">Error al cargar datos</div>
+          <div className="text-center text-gray-600">{t('common.error.generic')}</div>
         )}
       </main>
     </div>
