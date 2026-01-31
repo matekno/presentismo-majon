@@ -219,9 +219,26 @@ CRON_SECRET="tu-secreto"
 
 ---
 
+## Sistema de Kitot
+
+La app de presentismo-majon soporta **3 kitot** (grupos por año):
+- **Najshón** (1° año)
+- **Shinun** (2° año)
+- **Heschel** (3° año)
+
+### Impacto en SoyTalmid
+
+- Los talmidim tienen un campo `kitaId` que los asocia a una kitá
+- El schema de Prisma incluye los modelos `Kita` y `ClaseKita`
+- **No se requieren cambios en el flujo de SoyTalmid** - los talmidim siguen dando feedback normalmente
+- El feedback que dan es visible para todas las kitot en presentismo-majon
+
+---
+
 ## Notas de Implementación
 
 - El schema de Prisma es una **copia** del de presentismo-majon
 - Las migraciones se hacen SOLO desde presentismo-majon
 - No correr `prisma migrate` desde este proyecto
 - Los colores usan verde esmeralda para diferenciarse de presentismo-majon (azul)
+- Los modelos `Kita` y `ClaseKita` están en el schema pero no se usan directamente en esta app

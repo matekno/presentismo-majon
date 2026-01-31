@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
@@ -8,8 +9,20 @@ export async function GET(
   const { id } = await params
 
   try {
-    const clase = await prisma.clase.findUnique({
-      where: { id },
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    // Verificar que la clase pertenezca a la kitá
+    const clase = await prisma.clase.findFirst({
+      where: {
+        id,
+        kitot: {
+          some: { kitaId: session.kitaId }
+        }
+      },
       include: {
         docentes: {
           include: {
@@ -28,9 +41,12 @@ export async function GET(
       return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
     }
 
-    // Obtener todos los talmidim activos
+    // Obtener todos los talmidim activos de la kitá
     const talmidim = await prisma.talmid.findMany({
-      where: { activo: true },
+      where: {
+        activo: true,
+        kitaId: session.kitaId
+      },
       orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
     })
 

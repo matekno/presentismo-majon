@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { KitaBadge } from '@/components/KitaBadge'
 
 export default function HomePage() {
   const router = useRouter()
@@ -19,7 +20,10 @@ export default function HomePage() {
       <header className="pt-8 pb-4 px-4">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">{t('app.name')}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-white">{t('app.name')}</h1>
+              <KitaBadge />
+            </div>
             <p className="text-blue-200 text-sm mt-1">{t('app.slogan')}</p>
           </div>
           <button

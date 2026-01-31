@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 import { getDiaSemana, getHorarioClase, fromLocalDateString, toLocalDateString } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
@@ -11,6 +12,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
     const fecha = fromLocalDateString(fechaStr)
     const diaSemana = getDiaSemana(fecha)
 
@@ -43,13 +49,16 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Buscar o crear clase
+    // Buscar o crear clase (filtrar por kitá)
     let clase = await prisma.clase.findFirst({
       where: {
         fecha: {
           gte: startOfDay,
           lte: endOfDay,
         },
+        kitot: {
+          some: { kitaId: session.kitaId }
+        }
       },
       include: {
         docentes: {
@@ -74,6 +83,9 @@ export async function GET(request: NextRequest) {
           diaSemana,
           horaInicio: horario.inicio,
           horaFin: horario.fin,
+          kitot: {
+            create: { kitaId: session.kitaId }
+          }
         },
         include: {
           docentes: {
@@ -90,9 +102,12 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Obtener todos los talmidim activos
+    // Obtener todos los talmidim activos de la kitá
     const talmidim = await prisma.talmid.findMany({
-      where: { activo: true },
+      where: {
+        activo: true,
+        kitaId: session.kitaId
+      },
       orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
     })
 

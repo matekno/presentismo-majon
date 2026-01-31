@@ -67,13 +67,15 @@
   "login": {
     "title": "AniMejanej",
     "subtitle": "Ingresá para continuar",
+    "selectKita": "Seleccioná tu kitá",
     "password": "Contraseña",
     "passwordPlaceholder": "Ingresá la contraseña",
     "submit": "Ingresar",
     "submitting": "Ingresando...",
     "error": {
       "invalid": "Error al iniciar sesión",
-      "connection": "Error de conexión"
+      "connection": "Error de conexión",
+      "selectKita": "Por favor seleccioná una kitá"
     }
   },
   "asistencia": {

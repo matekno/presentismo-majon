@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export async function GET() {
   try {
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
     const talmidim = await prisma.talmid.findMany({
-      where: { activo: true },
+      where: {
+        activo: true,
+        kitaId: session.kitaId, // Filtrar por kitá
+      },
       orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
       include: {
         _count: {

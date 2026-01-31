@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -7,7 +8,14 @@ export async function GET(request: NextRequest) {
   const anio = searchParams.get('anio')
 
   try {
-    let whereClause = {}
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let whereClause: any = {}
 
     if (mes) {
       const [year, month] = mes.split('-').map(Number)
@@ -31,12 +39,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Filtrar clases por kitá
+    whereClause.kitot = {
+      some: { kitaId: session.kitaId }
+    }
+
     const clases = await prisma.clase.findMany({
       where: whereClause,
       include: {
         docentes: {
           include: {
             docente: true
+          }
+        },
+        kitot: {
+          include: {
+            kita: true
           }
         },
         _count: {
@@ -46,9 +64,11 @@ export async function GET(request: NextRequest) {
       orderBy: { fecha: 'asc' },
     })
 
-    // Obtener feriados del mismo periodo
+    // Obtener feriados del mismo periodo (sin filtro de kitá)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { kitot, ...feriadosWhere } = whereClause
     const feriados = await prisma.feriado.findMany({
-      where: whereClause,
+      where: feriadosWhere,
       orderBy: { fecha: 'asc' },
     })
 
@@ -60,13 +80,20 @@ export async function GET(request: NextRequest) {
         horaInicio: c.horaInicio,
         horaFin: c.horaFin,
         titulo: c.titulo,
-        // Nueva estructura: array de docentes
         docentes: c.docentes.map(cd => ({
           id: cd.docente.id,
           nombre: cd.docente.nombre,
           apellido: cd.docente.apellido,
           tipo: cd.docente.tipo
         })),
+        // Info de kitot para mostrar si es compartida
+        kitot: c.kitot.map(ck => ({
+          id: ck.kita.id,
+          nombre: ck.kita.nombre,
+          nombreDisplay: ck.kita.nombreDisplay,
+          colorHex: ck.kita.colorHex
+        })),
+        esCompartida: c.kitot.length > 1,
         cancelada: c.cancelada,
         motivo: c.motivo,
         tieneAsistencias: c._count.asistencias > 0,
@@ -86,7 +113,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { fecha, titulo, docenteIds, horaInicio, horaFin } = await request.json()
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const { fecha, titulo, docenteIds, horaInicio, horaFin, kitaIds } = await request.json()
 
     if (!fecha) {
       return NextResponse.json({ error: 'Fecha requerida' }, { status: 400 })
@@ -112,6 +145,17 @@ export async function POST(request: NextRequest) {
     // Normalizar docenteIds a array
     const docenteIdsArray: string[] = Array.isArray(docenteIds) ? docenteIds : (docenteIds ? [docenteIds] : [])
 
+    // kitaIds: si no se especifica, usar la kitá actual
+    // si es array vacío o tiene valores, usar esos
+    let kitaIdsArray: string[] = [session.kitaId]
+    if (kitaIds !== undefined) {
+      kitaIdsArray = Array.isArray(kitaIds) ? kitaIds : [kitaIds]
+      // Asegurar que la kitá actual siempre esté incluida
+      if (!kitaIdsArray.includes(session.kitaId)) {
+        kitaIdsArray.push(session.kitaId)
+      }
+    }
+
     // Verificar si ya existe una clase en esa fecha
     const startOfDay = new Date(year, month - 1, day, 0, 0, 0)
     const endOfDay = new Date(year, month - 1, day, 23, 59, 59)
@@ -122,6 +166,10 @@ export async function POST(request: NextRequest) {
           gte: startOfDay,
           lte: endOfDay,
         },
+        // Verificar que sea de la kitá actual
+        kitot: {
+          some: { kitaId: session.kitaId }
+        }
       },
     })
 
@@ -137,12 +185,10 @@ export async function POST(request: NextRequest) {
       })
 
       // Actualizar relaciones de docentes
-      // 1. Eliminar docentes anteriores
       await prisma.claseDocente.deleteMany({
         where: { claseId: existingClase.id }
       })
 
-      // 2. Crear nuevas relaciones
       if (docenteIdsArray.length > 0) {
         await prisma.claseDocente.createMany({
           data: docenteIdsArray.map(docenteId => ({
@@ -152,17 +198,32 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Obtener clase actualizada con docentes
-      const claseConDocentes = await prisma.clase.findUnique({
+      // Actualizar relaciones de kitot
+      await prisma.claseKita.deleteMany({
+        where: { claseId: existingClase.id }
+      })
+
+      await prisma.claseKita.createMany({
+        data: kitaIdsArray.map(kitaId => ({
+          claseId: existingClase.id,
+          kitaId
+        }))
+      })
+
+      // Obtener clase actualizada
+      const claseConRelaciones = await prisma.clase.findUnique({
         where: { id: clase.id },
         include: {
           docentes: {
             include: { docente: true }
+          },
+          kitot: {
+            include: { kita: true }
           }
         }
       })
 
-      return NextResponse.json({ success: true, clase: claseConDocentes, updated: true })
+      return NextResponse.json({ success: true, clase: claseConRelaciones, updated: true })
     }
 
     // Crear nueva clase
@@ -177,11 +238,19 @@ export async function POST(request: NextRequest) {
           create: docenteIdsArray.map(docenteId => ({
             docenteId
           }))
-        } : undefined
+        } : undefined,
+        kitot: {
+          create: kitaIdsArray.map(kitaId => ({
+            kitaId
+          }))
+        }
       },
       include: {
         docentes: {
           include: { docente: true }
+        },
+        kitot: {
+          include: { kita: true }
         }
       },
     })
@@ -195,19 +264,34 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
     const { id } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
     }
 
-    // Verificar si tiene asistencias
-    const clase = await prisma.clase.findUnique({
-      where: { id },
+    // Verificar que la clase pertenezca a la kitá actual
+    const clase = await prisma.clase.findFirst({
+      where: {
+        id,
+        kitot: {
+          some: { kitaId: session.kitaId }
+        }
+      },
       include: { _count: { select: { asistencias: true } } },
     })
 
-    if (clase && clase._count.asistencias > 0) {
+    if (!clase) {
+      return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
+    }
+
+    if (clase._count.asistencias > 0) {
       // Si tiene asistencias, marcar como cancelada en lugar de eliminar
       await prisma.clase.update({
         where: { id },

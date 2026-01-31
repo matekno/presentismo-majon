@@ -7,6 +7,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// MODELO DE KITOT (Grupos por año)
+// ============================================
+
+model Kita {
+  id            String   @id @default(cuid())
+  nombre        String   @unique // "najshon", "shinun", "heschel"
+  nombreDisplay String            // "Najshón", "Shinun", "Heschel"
+  anio          Int               // 1, 2, 3
+  passwordHash  String            // Password de acceso para mejanjim
+  colorHex      String   @default("#3B82F6")
+  activa        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  talmidim Talmid[]
+  clases   ClaseKita[]
+
+  @@map("kitot")
+}
+
+model ClaseKita {
+  id        String   @id @default(cuid())
+  claseId   String
+  kitaId    String
+  createdAt DateTime @default(now())
+
+  clase Clase @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  kita  Kita  @relation(fields: [kitaId], references: [id], onDelete: Cascade)
+
+  @@unique([claseId, kitaId])
+  @@map("clase_kita")
+}
+
+// ============================================
+// MODELOS PRINCIPALES
+// ============================================
+
 model Talmid {
   id              String       @id @default(cuid())
   nombre          String
@@ -22,6 +60,10 @@ model Talmid {
   // Campos para autenticación de talmidim (SoyTalmid)
   passwordHash    String?
   lastLogin       DateTime?
+
+  // Relación con Kitá
+  kitaId String?
+  kita   Kita?   @relation(fields: [kitaId], references: [id])
 
   asistencias          Asistencia[]
   notas                Nota[]
@@ -74,7 +116,7 @@ model ClaseDocente {
 
 model Clase {
   id          String       @id @default(cuid())
-  fecha       DateTime     @unique
+  fecha       DateTime     // Puede haber múltiples clases en la misma fecha (una por kitá)
   diaSemana   String       // "martes" o "viernes"
   horaInicio  String       // "18:30" o "17:30"
   horaFin     String       // "20:30" o "21:00"
@@ -87,6 +129,7 @@ model Clase {
   docentes    ClaseDocente[]
   asistencias Asistencia[]
   feedbacks   Feedback[]
+  kitot       ClaseKita[]  // Relación N:M con kitot (para clases compartidas)
 
   @@map("clases")
 }
