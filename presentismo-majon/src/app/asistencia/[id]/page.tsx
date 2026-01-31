@@ -11,6 +11,8 @@ interface Asistencia {
   apellido: string
   estado: 'presente' | 'ausente' | 'tardanza' | null
   justificacion: string | null
+  tieneAusenciaProgramada: boolean
+  ausenciaProgramadaJustificacion: string | null
 }
 
 interface Docente {
@@ -198,6 +200,8 @@ export default function TomarAsistenciaPage({
                   justificacionInicial={asistencia.justificacion}
                   claseId={clase.id}
                   onEstadoChange={handleEstadoChange}
+                  tieneAusenciaProgramada={asistencia.tieneAusenciaProgramada}
+                  ausenciaProgramadaJustificacion={asistencia.ausenciaProgramadaJustificacion}
                 />
               ))}
             </div>

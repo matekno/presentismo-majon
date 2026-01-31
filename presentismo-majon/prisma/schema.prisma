@@ -23,10 +23,11 @@ model Talmid {
   passwordHash    String?
   lastLogin       DateTime?
 
-  asistencias       Asistencia[]
-  notas             Nota[]
-  feedbacks         Feedback[]
-  pushSubscriptions PushSubscription[]
+  asistencias          Asistencia[]
+  notas                Nota[]
+  feedbacks            Feedback[]
+  pushSubscriptions    PushSubscription[]
+  ausenciasProgramadas AusenciaProgramada[]
 
   @@map("talmidim")
 }
@@ -113,6 +114,21 @@ model Feriado {
   tipo   String   // "argentino", "judio", "manual"
 
   @@map("feriados")
+}
+
+model AusenciaProgramada {
+  id            String   @id @default(cuid())
+  talmidId      String
+  fechaInicio   DateTime
+  fechaFin      DateTime
+  justificacion String
+  activa        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  talmid Talmid @relation(fields: [talmidId], references: [id], onDelete: Cascade)
+
+  @@map("ausencias_programadas")
 }
 
 model Config {

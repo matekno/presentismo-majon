@@ -13,6 +13,8 @@ interface AsistenciaItemProps {
   justificacionInicial: string | null
   claseId: string
   onEstadoChange: (talmidId: string, estado: Estado, justificacion: string | null) => void
+  tieneAusenciaProgramada?: boolean
+  ausenciaProgramadaJustificacion?: string | null
 }
 
 export default function AsistenciaItem({
@@ -23,13 +25,18 @@ export default function AsistenciaItem({
   justificacionInicial,
   claseId,
   onEstadoChange,
+  tieneAusenciaProgramada = false,
+  ausenciaProgramadaJustificacion = null,
 }: AsistenciaItemProps) {
   const [estado, setEstado] = useState<Estado>(estadoInicial)
-  const [justificacion, setJustificacion] = useState(justificacionInicial || '')
+  const [justificacion, setJustificacion] = useState(justificacionInicial || ausenciaProgramadaJustificacion || '')
   const [showJustificacion, setShowJustificacion] = useState(false)
   const [pendingEstado, setPendingEstado] = useState<Estado>(null)
   const [saving, setSaving] = useState(false)
   const t = useTranslations('asistenciaItem')
+
+  // Determinar si debe mostrarse como pre-seleccionado ausente
+  const ausenciaPendiente = tieneAusenciaProgramada && !estadoInicial
 
   const guardarAsistencia = async (nuevoEstado: Estado, justif: string | null = null) => {
     if (!nuevoEstado) return
@@ -95,6 +102,8 @@ export default function AsistenciaItem({
     const base = 'flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all active:scale-95'
     const selected = estado === btnEstado
     const pending = pendingEstado === btnEstado
+    // Mostrar ausente pre-seleccionado visualmente si hay ausencia programada pendiente
+    const preseleccionado = btnEstado === 'ausente' && ausenciaPendiente
 
     if (btnEstado === 'presente') {
       return `${base} ${selected ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`
@@ -103,13 +112,22 @@ export default function AsistenciaItem({
       return `${base} ${selected ? 'bg-yellow-500 text-white' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`
     }
     if (btnEstado === 'ausente') {
-      return `${base} ${selected || pending ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}`
+      return `${base} ${selected || pending || preseleccionado ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}`
     }
     return base
   }
 
   return (
-    <div className={`bg-white rounded-xl p-4 shadow-sm border transition-opacity ${saving ? 'opacity-60' : ''}`}>
+    <div className={`bg-white rounded-xl p-4 shadow-sm border transition-opacity ${saving ? 'opacity-60' : ''} ${ausenciaPendiente ? 'border-orange-300 bg-orange-50' : ''}`}>
+      {/* Badge de ausencia programada */}
+      {tieneAusenciaProgramada && (
+        <div className="flex items-center gap-1 mb-2 text-xs text-orange-700 bg-orange-100 px-2 py-1 rounded-full w-fit">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Vacaciones
+        </div>
+      )}
       <div className="flex items-center justify-between mb-3">
         <div>
           <span className="font-semibold text-gray-800">{apellido}</span>
@@ -187,6 +205,16 @@ export default function AsistenciaItem({
       {estado === 'ausente' && justificacion && !showJustificacion && (
         <div className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
           <span className="font-medium">{t('justification.reason')}</span> {justificacion}
+        </div>
+      )}
+
+      {/* Mensaje de ausencia programada pendiente */}
+      {ausenciaPendiente && !showJustificacion && (
+        <div className="mt-2 text-sm text-orange-700 bg-orange-100 px-3 py-2 rounded-lg">
+          <span className="font-medium">Ausencia programada:</span> {ausenciaProgramadaJustificacion}
+          <div className="text-xs text-orange-600 mt-1">
+            Click en &quot;Ausente&quot; para confirmar, o en otro estado si asistio
+          </div>
         </div>
       )}
     </div>

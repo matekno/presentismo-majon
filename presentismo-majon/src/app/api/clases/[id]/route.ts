@@ -39,15 +39,33 @@ export async function GET(
       clase.asistencias.map((a) => [a.talmidId, a])
     )
 
-    // Crear lista completa con estado de asistencia
+    // Obtener ausencias programadas activas que incluyan la fecha de esta clase
+    const claseFecha = clase.fecha
+    const ausenciasProgramadas = await prisma.ausenciaProgramada.findMany({
+      where: {
+        activa: true,
+        fechaInicio: { lte: claseFecha },
+        fechaFin: { gte: claseFecha },
+      },
+    })
+
+    // Mapear ausencias por talmidId
+    const ausenciasMap = new Map(
+      ausenciasProgramadas.map((a) => [a.talmidId, a])
+    )
+
+    // Crear lista completa con estado de asistencia y ausencias programadas
     const listaAsistencia = talmidim.map((talmid) => {
       const asistencia = asistenciasMap.get(talmid.id)
+      const ausenciaProgramada = ausenciasMap.get(talmid.id)
       return {
         talmidId: talmid.id,
         nombre: talmid.nombre,
         apellido: talmid.apellido,
         estado: asistencia?.estado || null,
         justificacion: asistencia?.justificacion || null,
+        tieneAusenciaProgramada: !!ausenciaProgramada,
+        ausenciaProgramadaJustificacion: ausenciaProgramada?.justificacion || null,
       }
     })
 
