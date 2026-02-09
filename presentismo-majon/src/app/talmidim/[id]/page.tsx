@@ -4,6 +4,8 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { Facehash } from 'facehash'
 
+const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b']
+
 interface Nota {
   id: string
   categoria: string
@@ -419,7 +421,7 @@ export default function TalmidFichaPage({
             />
           ) : (
             <div className="mx-auto border-4 border-white shadow-lg rounded-full w-24 h-24 overflow-hidden">
-              <Facehash name={`${talmid.nombre} ${talmid.apellido}`} size={96} />
+              <Facehash name={`${talmid.nombre} ${talmid.apellido}`} size={96} colors={AVATAR_COLORS} />
             </div>
           )}
           <h1 className="text-2xl font-bold mt-3">
@@ -522,7 +524,7 @@ export default function TalmidFichaPage({
                       </div>
                     ) : (
                       <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-gray-300">
-                        <Facehash name={`${formData.nombre} ${formData.apellido}`} size={80} />
+                        <Facehash name={`${formData.nombre} ${formData.apellido}`} size={80} colors={AVATAR_COLORS} />
                       </div>
                     )}
                     {/* Upload Button */}

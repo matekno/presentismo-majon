@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Facehash } from 'facehash'
 
+const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b']
+
 interface Talmid {
   id: string
   nombre: string
@@ -101,7 +103,7 @@ export default function TalmidimPage() {
                       className="w-14 h-14 rounded-full object-cover"
                     />
                   ) : (
-                    <Facehash name={`${talmid.nombre} ${talmid.apellido}`} size={56} />
+                    <Facehash name={`${talmid.nombre} ${talmid.apellido}`} size={56} colors={AVATAR_COLORS} />
                   )}
 
                   {/* Info */}
