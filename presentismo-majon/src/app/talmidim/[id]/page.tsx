@@ -19,6 +19,15 @@ interface Asistencia {
   justificacion: string | null
 }
 
+interface AusenciaProgramada {
+  id: string
+  fechaInicio: string
+  fechaFin: string
+  justificacion: string
+  activa: boolean
+  createdAt: string
+}
+
 interface Talmid {
   id: string
   nombre: string
@@ -61,7 +70,7 @@ export default function TalmidFichaPage({
   const { id } = use(params)
   const [data, setData] = useState<TalmidData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'info' | 'notas' | 'asistencia'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'notas' | 'asistencia' | 'vacaciones'>('info')
   const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState({
     nombre: '',
@@ -75,9 +84,15 @@ export default function TalmidFichaPage({
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [showNotaForm, setShowNotaForm] = useState(false)
   const [nuevaNota, setNuevaNota] = useState({ categoria: 'general', contenido: '' })
+  const [ausencias, setAusencias] = useState<AusenciaProgramada[]>([])
+  const [showAusenciaForm, setShowAusenciaForm] = useState(false)
+  const [nuevaAusencia, setNuevaAusencia] = useState({ fechaInicio: '', fechaFin: '', justificacion: '' })
+  const [savingAusencia, setSavingAusencia] = useState(false)
+  const [ausenciaError, setAusenciaError] = useState('')
 
   useEffect(() => {
     fetchTalmid()
+    fetchAusencias()
   }, [id])
 
   const fetchTalmid = async () => {
@@ -99,6 +114,16 @@ export default function TalmidFichaPage({
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAusencias = async () => {
+    try {
+      const res = await fetch(`/api/talmidim/${id}/ausencias-programadas`)
+      const json = await res.json()
+      setAusencias(json.ausencias || [])
+    } catch (error) {
+      console.error('Error fetching ausencias:', error)
     }
   }
 
@@ -167,6 +192,67 @@ export default function TalmidFichaPage({
     } catch (error) {
       console.error('Error:', error)
     }
+  }
+
+  const handleAddAusencia = async () => {
+    if (!nuevaAusencia.fechaInicio || !nuevaAusencia.fechaFin || !nuevaAusencia.justificacion.trim()) {
+      setAusenciaError('Todos los campos son requeridos')
+      return
+    }
+
+    setSavingAusencia(true)
+    setAusenciaError('')
+
+    try {
+      const res = await fetch(`/api/talmidim/${id}/ausencias-programadas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevaAusencia),
+      })
+
+      const json = await res.json()
+
+      if (res.ok) {
+        setAusencias((prev) => [json.ausencia, ...prev])
+        setNuevaAusencia({ fechaInicio: '', fechaFin: '', justificacion: '' })
+        setShowAusenciaForm(false)
+      } else {
+        setAusenciaError(json.error || 'Error al guardar')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setAusenciaError('Error de conexion')
+    } finally {
+      setSavingAusencia(false)
+    }
+  }
+
+  const handleDeleteAusencia = async (ausenciaId: string) => {
+    if (!confirm('Eliminar esta ausencia programada?')) return
+
+    try {
+      const res = await fetch(`/api/talmidim/${id}/ausencias-programadas`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ausenciaId }),
+      })
+
+      if (res.ok) {
+        setAusencias((prev) => prev.filter((a) => a.id !== ausenciaId))
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    }
+  }
+
+  const formatDateRange = (inicio: string, fin: string) => {
+    const formatOpts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
+    const inicioDate = new Date(inicio + 'T12:00:00')
+    const finDate = new Date(fin + 'T12:00:00')
+    const inicioStr = inicioDate.toLocaleDateString('es-AR', formatOpts)
+    const finStr = finDate.toLocaleDateString('es-AR', formatOpts)
+    if (inicio === fin) return inicioStr
+    return `${inicioStr} - ${finStr}`
   }
 
   const getInitials = (nombre: string, apellido: string) => {
@@ -383,7 +469,7 @@ export default function TalmidFichaPage({
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4">
           <div className="flex">
-            {(['info', 'notas', 'asistencia'] as const).map((tab) => (
+            {(['info', 'notas', 'asistencia', 'vacaciones'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -396,6 +482,7 @@ export default function TalmidFichaPage({
                 {tab === 'info' && 'Datos'}
                 {tab === 'notas' && `Notas (${notas.length})`}
                 {tab === 'asistencia' && 'Historial'}
+                {tab === 'vacaciones' && `Vacaciones`}
               </button>
             ))}
           </div>
@@ -716,6 +803,139 @@ export default function TalmidFichaPage({
                   </span>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Vacaciones Tab */}
+        {activeTab === 'vacaciones' && (
+          <div className="space-y-4">
+            {/* Add Ausencia Button */}
+            {!showAusenciaForm && (
+              <button
+                onClick={() => setShowAusenciaForm(true)}
+                className="w-full bg-white rounded-xl p-4 shadow-sm border-2 border-dashed border-gray-300 text-gray-500 hover:border-orange-400 hover:text-orange-600 transition"
+              >
+                + Agregar ausencia programada
+              </button>
+            )}
+
+            {/* Ausencia Form */}
+            {showAusenciaForm && (
+              <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+                <h3 className="font-medium text-gray-800">Nueva ausencia programada</h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Desde
+                    </label>
+                    <input
+                      type="date"
+                      value={nuevaAusencia.fechaInicio}
+                      onChange={(e) => setNuevaAusencia({ ...nuevaAusencia, fechaInicio: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Hasta
+                    </label>
+                    <input
+                      type="date"
+                      value={nuevaAusencia.fechaFin}
+                      onChange={(e) => setNuevaAusencia({ ...nuevaAusencia, fechaFin: e.target.value })}
+                      min={nuevaAusencia.fechaInicio}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Motivo
+                  </label>
+                  <textarea
+                    value={nuevaAusencia.justificacion}
+                    onChange={(e) => setNuevaAusencia({ ...nuevaAusencia, justificacion: e.target.value })}
+                    placeholder="Ej: Viaje familiar, vacaciones..."
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none resize-none text-sm"
+                  />
+                </div>
+
+                {ausenciaError && (
+                  <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
+                    {ausenciaError}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddAusencia}
+                    disabled={savingAusencia}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition disabled:opacity-50"
+                  >
+                    {savingAusencia ? 'Guardando...' : 'Guardar'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAusenciaForm(false)
+                      setNuevaAusencia({ fechaInicio: '', fechaFin: '', justificacion: '' })
+                      setAusenciaError('')
+                    }}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Ausencias List */}
+            {ausencias.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                <div className="text-4xl mb-2">🏖️</div>
+                <p>No hay ausencias programadas</p>
+                <p className="text-sm mt-1">
+                  Registra vacaciones o ausencias planificadas para que aparezcan pre-marcadas al tomar lista
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {ausencias.map((ausencia) => (
+                  <div
+                    key={ausencia.id}
+                    className={`bg-white rounded-xl p-4 shadow-sm ${
+                      !ausencia.activa ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-800">
+                            {formatDateRange(ausencia.fechaInicio, ausencia.fechaFin)}
+                          </div>
+                          <div className="text-sm text-gray-600">{ausencia.justificacion}</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteAusencia(ausencia.id)}
+                        className="text-gray-400 hover:text-red-500 p-1"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}

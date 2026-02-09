@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface Feriado {
   id: string
@@ -17,6 +18,7 @@ export default function FeriadosPage() {
   const [newFeriado, setNewFeriado] = useState({ fecha: '', nombre: '', tipo: 'manual' })
   const [saving, setSaving] = useState(false)
   const [filter, setFilter] = useState<'todos' | 'argentino' | 'judio' | 'manual'>('todos')
+  const t = useTranslations()
 
   useEffect(() => {
     fetchFeriados()
@@ -58,7 +60,7 @@ export default function FeriadosPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Eliminar este feriado?')) return
+    if (!confirm(t('feriados.confirmDelete'))) return
 
     try {
       await fetch('/api/feriados', {
@@ -115,6 +117,21 @@ export default function FeriadosPage() {
     return date.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
   }
 
+  const getFilterLabel = (tipo: string) => {
+    switch (tipo) {
+      case 'todos':
+        return t('feriados.filters.all')
+      case 'argentino':
+        return t('feriados.filters.argentino')
+      case 'judio':
+        return t('feriados.filters.judio')
+      case 'manual':
+        return t('feriados.filters.manual')
+      default:
+        return tipo
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -122,9 +139,9 @@ export default function FeriadosPage() {
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-blue-200 hover:text-white">
-              ← Volver
+              {t('common.back')}
             </Link>
-            <h1 className="text-xl font-bold">Feriados</h1>
+            <h1 className="text-xl font-bold">{t('feriados.title')}</h1>
             <button
               onClick={() => setShowForm(!showForm)}
               className="text-blue-200 hover:text-white text-2xl"
@@ -140,12 +157,12 @@ export default function FeriadosPage() {
         {/* Add Form */}
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-white rounded-xl p-4 shadow-sm mb-4">
-            <h2 className="font-semibold text-gray-800 mb-4">Agregar excepcion</h2>
+            <h2 className="font-semibold text-gray-800 mb-4">{t('feriados.form.title')}</h2>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha
+                  {t('feriados.form.date')}
                 </label>
                 <input
                   type="date"
@@ -158,13 +175,13 @@ export default function FeriadosPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Motivo
+                  {t('feriados.form.reason')}
                 </label>
                 <input
                   type="text"
                   value={newFeriado.nombre}
                   onChange={(e) => setNewFeriado({ ...newFeriado, nombre: e.target.value })}
-                  placeholder="Ej: Evento especial"
+                  placeholder={t('feriados.form.reasonPlaceholder')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   required
                 />
@@ -172,16 +189,16 @@ export default function FeriadosPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo
+                  {t('feriados.form.type')}
                 </label>
                 <select
                   value={newFeriado.tipo}
                   onChange={(e) => setNewFeriado({ ...newFeriado, tipo: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 >
-                  <option value="manual">Manual</option>
-                  <option value="argentino">Argentino</option>
-                  <option value="judio">Judio</option>
+                  <option value="manual">{t('feriados.form.types.manual')}</option>
+                  <option value="argentino">{t('feriados.form.types.argentino')}</option>
+                  <option value="judio">{t('feriados.form.types.judio')}</option>
                 </select>
               </div>
 
@@ -190,7 +207,7 @@ export default function FeriadosPage() {
                 disabled={saving}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50"
               >
-                {saving ? 'Guardando...' : 'Agregar'}
+                {saving ? t('common.saving') : t('common.add')}
               </button>
             </div>
           </form>
@@ -208,7 +225,7 @@ export default function FeriadosPage() {
                   : 'bg-white text-gray-600 hover:bg-gray-100'
               }`}
             >
-              {tipo === 'todos' ? 'Todos' : tipo.charAt(0).toUpperCase() + tipo.slice(1) + 's'}
+              {getFilterLabel(tipo)}
             </button>
           ))}
         </div>
@@ -248,7 +265,7 @@ export default function FeriadosPage() {
                           <button
                             onClick={() => handleDelete(feriado.id)}
                             className="text-red-400 hover:text-red-600 p-1"
-                            title="Eliminar"
+                            title={t('common.delete')}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -275,7 +292,7 @@ export default function FeriadosPage() {
 
             {filteredFeriados.length === 0 && (
               <div className="text-center text-gray-500 py-8">
-                No hay feriados para mostrar
+                {t('feriados.empty')}
               </div>
             )}
           </div>

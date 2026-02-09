@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
     const { claseId, talmidId, estado, justificacion } = await request.json()
 
     if (!claseId || !talmidId || !estado) {
@@ -17,6 +24,32 @@ export async function POST(request: NextRequest) {
         { error: 'Estado invalido' },
         { status: 400 }
       )
+    }
+
+    // Verificar que la clase pertenezca a la kitá
+    const clase = await prisma.clase.findFirst({
+      where: {
+        id: claseId,
+        kitot: {
+          some: { kitaId: session.kitaId }
+        }
+      }
+    })
+
+    if (!clase) {
+      return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
+    }
+
+    // Verificar que el talmid pertenezca a la kitá
+    const talmid = await prisma.talmid.findFirst({
+      where: {
+        id: talmidId,
+        kitaId: session.kitaId
+      }
+    })
+
+    if (!talmid) {
+      return NextResponse.json({ error: 'Talmid no encontrado' }, { status: 404 })
     }
 
     const asistencia = await prisma.asistencia.upsert({
@@ -47,6 +80,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
     const { claseId, talmidId } = await request.json()
 
     if (!claseId || !talmidId) {
@@ -54,6 +93,20 @@ export async function DELETE(request: NextRequest) {
         { error: 'Faltan campos requeridos' },
         { status: 400 }
       )
+    }
+
+    // Verificar que la clase pertenezca a la kitá
+    const clase = await prisma.clase.findFirst({
+      where: {
+        id: claseId,
+        kitot: {
+          some: { kitaId: session.kitaId }
+        }
+      }
+    })
+
+    if (!clase) {
+      return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
     }
 
     await prisma.asistencia.delete({

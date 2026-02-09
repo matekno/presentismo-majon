@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 export default function RegistroPage() {
   const [step, setStep] = useState<'codigo' | 'datos'>('codigo')
@@ -11,6 +12,8 @@ export default function RegistroPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const t = useTranslations('registro')
+  const tCommon = useTranslations('common')
 
   async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault()
@@ -27,13 +30,13 @@ export default function RegistroPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Código inválido')
+        setError(data.error || t('code.invalid'))
         return
       }
 
       setStep('datos')
     } catch {
-      setError('Error de conexión')
+      setError(t('error.connection'))
     } finally {
       setLoading(false)
     }
@@ -44,12 +47,12 @@ export default function RegistroPage() {
     setError('')
 
     if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden')
+      setError(t('error.passwordMismatch'))
       return
     }
 
     if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+      setError(t('error.passwordTooShort'))
       return
     }
 
@@ -70,14 +73,14 @@ export default function RegistroPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Error al registrar')
+        setError(data.error || t('error.registration'))
         return
       }
 
       // Redirigir al login con mensaje de éxito
       window.location.href = '/login?registered=true'
     } catch {
-      setError('Error de conexión')
+      setError(t('error.connection'))
     } finally {
       setLoading(false)
     }
@@ -91,7 +94,7 @@ export default function RegistroPage() {
           <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Volver
+          {tCommon('back').replace('← ', '')}
         </Link>
       </div>
 
@@ -102,9 +105,9 @@ export default function RegistroPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-white mb-1">Crear cuenta</h1>
+        <h1 className="text-2xl font-bold text-white mb-1">{t('title')}</h1>
         <p className="text-emerald-100 text-sm">
-          {step === 'codigo' ? 'Paso 1 de 2' : 'Paso 2 de 2'}
+          {step === 'codigo' ? t('step1') : t('step2')}
         </p>
       </div>
 
@@ -113,10 +116,10 @@ export default function RegistroPage() {
         {step === 'codigo' ? (
           <>
             <h2 className="text-lg font-semibold text-gray-800 mb-2 text-center">
-              Código de invitación
+              {t('code.title')}
             </h2>
             <p className="text-gray-500 text-sm text-center mb-6">
-              Pedile el código a tu mejanej
+              {t('code.instruction')}
             </p>
 
             <form onSubmit={handleVerifyCode} className="space-y-4">
@@ -126,7 +129,7 @@ export default function RegistroPage() {
                   value={codigoInvitacion}
                   onChange={(e) => setCodigoInvitacion(e.target.value.toUpperCase())}
                   className="w-full px-4 py-4 border border-gray-300 rounded-xl text-center text-2xl tracking-widest font-mono uppercase focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="CODIGO"
+                  placeholder={t('code.placeholder')}
                   maxLength={20}
                   required
                 />
@@ -141,23 +144,23 @@ export default function RegistroPage() {
                 disabled={loading || !codigoInvitacion}
                 className="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? 'Verificando...' : 'Verificar código'}
+                {loading ? t('code.verifying') : t('code.verify')}
               </button>
             </form>
           </>
         ) : (
           <>
             <h2 className="text-lg font-semibold text-gray-800 mb-2 text-center">
-              Tus datos
+              {t('data.title')}
             </h2>
             <p className="text-gray-500 text-sm text-center mb-6">
-              Usá el email con el que estás registrado en el Majon
+              {t('data.instruction')}
             </p>
 
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  {t('data.email')}
                 </label>
                 <input
                   id="email"
@@ -165,14 +168,14 @@ export default function RegistroPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="tu@email.com"
+                  placeholder={t('data.emailPlaceholder')}
                   required
                 />
               </div>
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Contraseña
+                  {t('data.password')}
                 </label>
                 <input
                   id="password"
@@ -180,7 +183,7 @@ export default function RegistroPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={t('data.passwordPlaceholder')}
                   minLength={6}
                   required
                 />
@@ -188,7 +191,7 @@ export default function RegistroPage() {
 
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmar contraseña
+                  {t('data.confirmPassword')}
                 </label>
                 <input
                   id="confirmPassword"
@@ -196,7 +199,7 @@ export default function RegistroPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="Repetí tu contraseña"
+                  placeholder={t('data.confirmPlaceholder')}
                   minLength={6}
                   required
                 />
@@ -211,7 +214,7 @@ export default function RegistroPage() {
                 disabled={loading}
                 className="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? 'Registrando...' : 'Crear cuenta'}
+                {loading ? t('data.submitting') : t('data.submit')}
               </button>
             </form>
 
@@ -219,7 +222,7 @@ export default function RegistroPage() {
               onClick={() => setStep('codigo')}
               className="w-full mt-4 text-gray-500 text-sm hover:text-gray-700"
             >
-              ← Cambiar código
+              {t('code.change')}
             </button>
           </>
         )}

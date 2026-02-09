@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
@@ -8,8 +9,17 @@ export async function GET(
   const { id } = await params
 
   try {
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
     const talmid = await prisma.talmid.findUnique({
-      where: { id },
+      where: {
+        id,
+        kitaId: session.kitaId, // Verificar que pertenece a la kitá
+      },
       include: {
         notas: {
           orderBy: { createdAt: 'desc' },
@@ -94,11 +104,20 @@ export async function PUT(
   const { id } = await params
 
   try {
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { nombre, apellido, fechaNacimiento, telefono, email, fotoUrl } = body
 
     const talmid = await prisma.talmid.update({
-      where: { id },
+      where: {
+        id,
+        kitaId: session.kitaId, // Verificar que pertenece a la kitá
+      },
       data: {
         nombre: nombre || undefined,
         apellido: apellido || undefined,

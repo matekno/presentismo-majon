@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface FeedbackItem {
   id: string
@@ -17,6 +18,7 @@ interface FeedbackItem {
 export default function HistorialPage() {
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([])
   const [loading, setLoading] = useState(true)
+  const t = useTranslations()
 
   useEffect(() => {
     fetchHistorial()
@@ -54,7 +56,7 @@ export default function HistorialPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
-          <h1 className="font-semibold">Mi historial</h1>
+          <h1 className="font-semibold">{t('historial.title')}</h1>
         </div>
       </header>
 
@@ -62,9 +64,9 @@ export default function HistorialPage() {
         {feedbacks.length === 0 ? (
           <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-gray-100">
             <div className="text-4xl mb-2">📝</div>
-            <p className="text-gray-600">Todavía no diste feedback de ninguna clase</p>
+            <p className="text-gray-600">{t('historial.empty')}</p>
             <Link href="/" className="text-emerald-600 text-sm mt-4 inline-block">
-              ← Volver al inicio
+              {t('common.backToHome')}
             </Link>
           </div>
         ) : (
@@ -77,7 +79,7 @@ export default function HistorialPage() {
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <p className="font-medium text-gray-800">
-                      {feedback.clase.titulo || 'Clase'}
+                      {feedback.clase.titulo || t('common.class')}
                     </p>
                     <p className="text-sm text-gray-500">
                       {new Date(feedback.clase.fecha).toLocaleDateString('es-AR', {
@@ -100,7 +102,7 @@ export default function HistorialPage() {
                   </p>
                 )}
                 <p className="text-xs text-gray-400 mt-2">
-                  Enviado {new Date(feedback.createdAt).toLocaleDateString('es-AR')}
+                  {t('historial.sent')} {new Date(feedback.createdAt).toLocaleDateString('es-AR')}
                 </p>
               </div>
             ))}

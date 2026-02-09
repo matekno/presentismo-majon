@@ -1,0 +1,342 @@
+{
+  "app": {
+    "name": "AniMejanej",
+    "slogan": "אִם זֶה חֶלְקֵנוּ — חֶלְקֵנוּ זֶה זָהָב",
+    "sloganTranslation": "Si esto es lo que tenemos, lo que tenemos es oro",
+    "description": "Gestión educativa del Majon"
+  },
+  "common": {
+    "back": "← Volver",
+    "logout": "Salir",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "all": "Todos",
+    "yes": "Sí",
+    "no": "No",
+    "error": {
+      "connection": "Error de conexión",
+      "generic": "Ocurrió un error"
+    },
+    "days": {
+      "sun": "Dom",
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mié",
+      "thu": "Jue",
+      "fri": "Vie",
+      "sat": "Sáb"
+    }
+  },
+  "home": {
+    "modules": {
+      "asistencia": {
+        "title": "Asistencia",
+        "description": "Tomar lista de la clase"
+      },
+      "cronograma": {
+        "title": "Cronograma",
+        "description": "Planificar clases"
+      },
+      "talmidim": {
+        "title": "Talmidim",
+        "description": "Fichas y datos de alumnos"
+      },
+      "docentes": {
+        "title": "Docentes",
+        "description": "Mejanjim y capacitadores"
+      },
+      "reportes": {
+        "title": "Reportes",
+        "description": "Ver estadísticas de asistencia"
+      },
+      "feedback": {
+        "title": "Feedback",
+        "description": "Evaluaciones de talmidim"
+      },
+      "feriados": {
+        "title": "Feriados y excepciones"
+      }
+    }
+  },
+  "login": {
+    "title": "AniMejanej",
+    "subtitle": "Ingresá para continuar",
+    "selectKita": "Seleccioná tu kitá",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Ingresá la contraseña",
+    "submit": "Ingresar",
+    "submitting": "Ingresando...",
+    "error": {
+      "invalid": "Error al iniciar sesión",
+      "connection": "Error de conexión",
+      "selectKita": "Por favor seleccioná una kitá"
+    }
+  },
+  "asistencia": {
+    "title": "Asistencia",
+    "takeAttendance": "Tomar lista",
+    "loadingClasses": "Cargando clases...",
+    "noClasses": {
+      "title": "No hay clases planificadas",
+      "description": "Primero agendá clases en el cronograma",
+      "action": "Ir al cronograma"
+    },
+    "selectClass": "Seleccionar clase",
+    "today": "HOY",
+    "viewEdit": "Ver / Editar asistencia",
+    "stats": {
+      "present": "Presentes",
+      "late": "Tardanzas",
+      "absent": "Ausentes",
+      "unmarked": "Sin marcar"
+    },
+    "status": {
+      "taken": "Asistencia tomada",
+      "pending": "Pendiente",
+      "pendingDescription": "No se tomó lista"
+    },
+    "complete": {
+      "title": "¡Lista completa!",
+      "description": "Todos los alumnos fueron marcados"
+    },
+    "error": {
+      "loadClass": "Error al cargar la clase"
+    }
+  },
+  "asistenciaItem": {
+    "present": "Presente",
+    "late": "Tardanza",
+    "absent": "Ausente",
+    "justification": {
+      "label": "Justificación de ausencia (requerida)",
+      "placeholder": "Ej: Enfermo, viaje familiar, etc.",
+      "confirm": "Confirmar ausencia",
+      "confirming": "Guardando...",
+      "cancel": "Cancelar",
+      "reason": "Motivo:"
+    }
+  },
+  "cronograma": {
+    "title": "Cronograma",
+    "legend": {
+      "planned": "Clase planificada",
+      "holiday": "Feriado"
+    },
+    "class": "Clase",
+    "cancelled": "Cancelada",
+    "modal": {
+      "editTitle": "Editar clase",
+      "newTitle": "Nueva clase"
+    },
+    "form": {
+      "titleLabel": "Título / Tema",
+      "titlePlaceholder": "Ej: Parashat Hashavua",
+      "docentes": "Docentes",
+      "addNew": "+ Agregar nuevo",
+      "searchDocente": "Buscar docente...",
+      "startTime": "Hora inicio",
+      "endTime": "Hora fin"
+    },
+    "docenteForm": {
+      "name": "Nombre",
+      "surname": "Apellido",
+      "mejanej": "Mejanej",
+      "capacitador": "Capacitador"
+    },
+    "sections": {
+      "mejanjim": "Mejanjim",
+      "capacitadores": "Capacitadores"
+    },
+    "empty": {
+      "noDocentes": "No hay docentes registrados",
+      "noResults": "No se encontraron docentes con \"{search}\""
+    },
+    "selectedCount": "{count} docente seleccionado | {count} docentes seleccionados",
+    "stats": {
+      "planned": "Clases planificadas",
+      "withAttendance": "Con asistencia",
+      "holidays": "Feriados"
+    },
+    "confirmDelete": "¿Eliminar esta clase?"
+  },
+  "docentes": {
+    "title": "Docentes",
+    "filters": {
+      "all": "Todos",
+      "mejanjim": "Mejanjim",
+      "capacitadores": "Capacitadores"
+    },
+    "empty": {
+      "title": "No hay docentes registrados",
+      "action": "Agregar docente"
+    },
+    "modal": {
+      "title": "Nuevo docente"
+    },
+    "form": {
+      "name": "Nombre",
+      "namePlaceholder": "Ej: Juan",
+      "surname": "Apellido",
+      "surnamePlaceholder": "Ej: Pérez",
+      "type": "Tipo",
+      "mejanej": "Mejanej",
+      "capacitador": "Capacitador",
+      "submit": "Agregar docente"
+    },
+    "classCount": "{count} clase | {count} clases"
+  },
+  "docenteFicha": {
+    "title": "Ficha",
+    "notFound": "Docente no encontrado",
+    "stats": {
+      "totalClasses": "Total clases",
+      "periodPercentage": "Del período",
+      "lastClass": "Última clase"
+    },
+    "tabs": {
+      "info": "Datos",
+      "history": "Historial",
+      "feedback": "Feedback"
+    },
+    "info": {
+      "fullName": "Nombre completo",
+      "type": "Tipo",
+      "registered": "Registrado",
+      "editButton": "Editar datos"
+    },
+    "history": {
+      "noTitle": "Sin título",
+      "completed": "Completada",
+      "pending": "Pendiente",
+      "empty": "No tiene clases asignadas"
+    },
+    "feedback": {
+      "average": "Promedio de {count} evaluaciones",
+      "empty": "Aún no tiene evaluaciones"
+    }
+  },
+  "talmidim": {
+    "title": "Talmidim",
+    "searchPlaceholder": "Buscar talmid...",
+    "activeCount": "talmidim activos",
+    "classes": "clases",
+    "notes": "notas",
+    "noResults": "No se encontraron talmidim con \"{search}\""
+  },
+  "talmidFicha": {
+    "years": "años",
+    "notFound": "Talmid no encontrado",
+    "backToList": "Volver al listado",
+    "stats": {
+      "attendance": "Asistencia",
+      "present": "Presentes",
+      "late": "Tardanzas",
+      "absent": "Ausentes"
+    },
+    "tabs": {
+      "info": "Datos",
+      "notes": "Notas",
+      "history": "Historial"
+    },
+    "form": {
+      "photo": "Foto",
+      "uploadPhoto": "Subir foto",
+      "name": "Nombre",
+      "surname": "Apellido",
+      "birthDate": "Fecha de nacimiento",
+      "phone": "Teléfono",
+      "email": "Email",
+      "saveChanges": "Guardar cambios"
+    },
+    "info": {
+      "birthDate": "Fecha de nacimiento",
+      "phone": "Teléfono",
+      "email": "Email",
+      "noData": "No hay datos adicionales",
+      "addData": "Agregar datos"
+    },
+    "notes": {
+      "add": "+ Agregar nota",
+      "categories": {
+        "academic": "Académico",
+        "conduct": "Conducta",
+        "health": "Salud",
+        "general": "General"
+      },
+      "placeholder": "Escribí la nota...",
+      "empty": "No hay notas registradas",
+      "confirmDelete": "¿Eliminar esta nota?"
+    },
+    "history": {
+      "empty": "No hay registros de asistencia"
+    },
+    "errors": {
+      "imageTooLarge": "La imagen es muy grande. Máximo 2MB",
+      "selectImage": "Por favor seleccioná una imagen",
+      "processing": "Procesando..."
+    }
+  },
+  "feedback": {
+    "title": "Feedback",
+    "subtitle": "Evaluaciones de los talmidim",
+    "stats": {
+      "total": "Feedbacks totales",
+      "classAverage": "Promedio clases"
+    },
+    "ranking": {
+      "title": "Ranking de docentes",
+      "evaluations": "evaluaciones"
+    },
+    "recent": {
+      "title": "Feedbacks recientes",
+      "empty": "Aún no hay feedbacks"
+    }
+  },
+  "reportes": {
+    "title": "Reportes",
+    "loading": "Cargando reportes...",
+    "stats": {
+      "totalClasses": "Clases registradas",
+      "present": "presentes",
+      "late": "tardanzas",
+      "absent": "ausentes"
+    },
+    "history": {
+      "title": "Historial",
+      "empty": "Sin registros"
+    }
+  },
+  "feriados": {
+    "title": "Feriados",
+    "form": {
+      "title": "Agregar excepción",
+      "date": "Fecha",
+      "reason": "Motivo",
+      "reasonPlaceholder": "Ej: Evento especial",
+      "type": "Tipo",
+      "types": {
+        "manual": "Manual",
+        "argentino": "Argentino",
+        "judio": "Judío"
+      }
+    },
+    "filters": {
+      "all": "Todos",
+      "argentino": "Argentinos",
+      "judio": "Judíos",
+      "manual": "Manuales"
+    },
+    "confirmDelete": "¿Eliminar este feriado?",
+    "empty": "No hay feriados para mostrar"
+  },
+  "metadata": {
+    "title": "AniMejanej",
+    "description": "Gestión educativa del Majon"
+  }
+}

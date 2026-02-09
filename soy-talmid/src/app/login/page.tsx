@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const t = useTranslations('login')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -24,13 +26,13 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Error al iniciar sesión')
+        setError(data.error || t('error.invalid'))
         return
       }
 
       window.location.href = '/'
     } catch {
-      setError('Error de conexión')
+      setError(t('error.connection'))
     } finally {
       setLoading(false)
     }
@@ -45,20 +47,20 @@ export default function LoginPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2">SoyTalmid</h1>
-        <p className="text-emerald-100">Tu voz importa</p>
+        <h1 className="text-3xl font-bold text-white mb-2">{t('title')}</h1>
+        <p className="text-emerald-100">{t('tagline')}</p>
       </div>
 
       {/* Form area */}
       <div className="bg-white rounded-t-3xl p-8 shadow-2xl">
         <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">
-          Iniciar sesión
+          {t('formTitle')}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              {t('email')}
             </label>
             <input
               id="email"
@@ -66,14 +68,14 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="tu@email.com"
+              placeholder={t('emailPlaceholder')}
               required
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Contraseña
+              {t('password')}
             </label>
             <input
               id="password"
@@ -81,7 +83,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="••••••••"
+              placeholder={t('passwordPlaceholder')}
               required
             />
           </div>
@@ -95,15 +97,15 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? t('submitting') : t('submit')}
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600 text-sm">
-            ¿No tenés cuenta?{' '}
+            {t('noAccount')}{' '}
             <Link href="/registro" className="text-emerald-600 font-medium hover:text-emerald-700">
-              Registrate
+              {t('register')}
             </Link>
           </p>
         </div>

@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const talmidId = searchParams.get('talmidId')
 
   try {
-    // Obtener todos los talmidim activos
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    // Obtener todos los talmidim activos de la kitá
     const talmidim = await prisma.talmid.findMany({
-      where: { activo: true },
+      where: {
+        activo: true,
+        kitaId: session.kitaId
+      },
       orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
       include: {
         asistencias: {
@@ -24,9 +34,14 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Obtener total de clases que no fueron canceladas
+    // Obtener total de clases de la kitá que no fueron canceladas
     const totalClases = await prisma.clase.count({
-      where: { cancelada: false },
+      where: {
+        cancelada: false,
+        kitot: {
+          some: { kitaId: session.kitaId }
+        }
+      },
     })
 
     // Calcular estadisticas por talmid

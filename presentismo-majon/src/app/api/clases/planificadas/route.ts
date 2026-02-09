@@ -1,12 +1,22 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export async function GET() {
   try {
-    // Obtener clases planificadas (no canceladas) ordenadas por fecha desc
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    // Obtener clases planificadas (no canceladas) de la kitá, ordenadas por fecha desc
     const clases = await prisma.clase.findMany({
       where: {
         cancelada: false,
+        kitot: {
+          some: { kitaId: session.kitaId }
+        }
       },
       include: {
         docentes: {

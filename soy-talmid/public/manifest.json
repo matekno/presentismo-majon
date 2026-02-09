@@ -1,7 +1,7 @@
 {
-  "name": "SoyTalmid",
-  "short_name": "SoyTalmid",
-  "description": "App de feedback para estudiantes de Majon",
+  "name": "AniTalmid",
+  "short_name": "AniTalmid",
+  "description": "App de feedback para estudiantes del Majon - אִם זֶה חֶלְקֵנוּ — חֶלְקֵנוּ זֶה זָהָב",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
