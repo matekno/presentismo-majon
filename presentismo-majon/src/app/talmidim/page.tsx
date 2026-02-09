@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Facehash } from 'facehash'
 
 interface Talmid {
   id: string
@@ -100,11 +101,7 @@ export default function TalmidimPage() {
                       className="w-14 h-14 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <span className="text-indigo-600 font-semibold text-lg">
-                        {getInitials(talmid.nombre, talmid.apellido)}
-                      </span>
-                    </div>
+                    <Facehash name={`${talmid.nombre} ${talmid.apellido}`} size={56} />
                   )}
 
                   {/* Info */}

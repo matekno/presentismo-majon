@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
+import { Facehash } from 'facehash'
 
 interface Nota {
   id: string
@@ -331,10 +332,8 @@ export default function TalmidFichaPage({
               className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-white shadow-lg"
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-indigo-500 flex items-center justify-center mx-auto border-4 border-white shadow-lg">
-              <span className="text-white font-bold text-2xl">
-                {getInitials(talmid.nombre, talmid.apellido)}
-              </span>
+            <div className="mx-auto border-4 border-white shadow-lg rounded-full w-24 h-24 overflow-hidden">
+              <Facehash name={`${talmid.nombre} ${talmid.apellido}`} size={96} />
             </div>
           )}
           <h1 className="text-2xl font-bold mt-3">
@@ -435,10 +434,8 @@ export default function TalmidFichaPage({
                         </button>
                       </div>
                     ) : (
-                      <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-gray-300">
+                        <Facehash name={`${formData.nombre} ${formData.apellido}`} size={80} />
                       </div>
                     )}
                     {/* Upload Button */}
