@@ -116,11 +116,12 @@ model ClaseDocente {
 
 model Clase {
   id          String       @id @default(cuid())
-  fecha       DateTime     // Puede haber múltiples clases en la misma fecha (una por kitá)
-  diaSemana   String       // "martes" o "viernes"
+  tipo        String       @default("clase") // "clase" | "evento"
+  fecha       DateTime     // Puede haber múltiples clases/eventos en la misma fecha
+  diaSemana   String       // "martes", "viernes", o cualquier día para eventos
   horaInicio  String       // "18:30" o "17:30"
   horaFin     String       // "20:30" o "21:00"
-  titulo      String?      // titulo/tema de la clase
+  titulo      String?      // titulo/tema de la clase o nombre del evento
   cancelada   Boolean      @default(false)
   motivo      String?      // motivo de cancelacion si aplica
   createdAt   DateTime     @default(now())

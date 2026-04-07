@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { getDiaSemanaCompleto } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       clases: clases.map((c) => ({
         id: c.id,
+        tipo: c.tipo,
         fecha: c.fecha.toISOString().split('T')[0],
         diaSemana: c.diaSemana,
         horaInicio: c.horaInicio,
@@ -119,7 +121,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const { fecha, titulo, docenteIds, horaInicio, horaFin, kitaIds } = await request.json()
+    const { fecha, titulo, docenteIds, horaInicio, horaFin, kitaIds, tipo = 'clase' } = await request.json()
 
     if (!fecha) {
       return NextResponse.json({ error: 'Fecha requerida' }, { status: 400 })
@@ -130,128 +132,108 @@ export async function POST(request: NextRequest) {
     const fechaDate = new Date(year, month - 1, day)
     const dayOfWeek = fechaDate.getDay()
 
-    // Validar que sea martes (2) o viernes (5)
-    if (dayOfWeek !== 2 && dayOfWeek !== 5) {
+    // Para clases regulares, validar que sea martes (2) o viernes (5)
+    if (tipo === 'clase' && dayOfWeek !== 2 && dayOfWeek !== 5) {
       return NextResponse.json(
         { error: `Solo se pueden crear clases los martes o viernes (dia recibido: ${dayOfWeek}, fecha: ${fecha})` },
         { status: 400 }
       )
     }
 
-    const diaSemana = dayOfWeek === 2 ? 'martes' : 'viernes'
+    // Para eventos, el título es obligatorio
+    if (tipo === 'evento' && !titulo) {
+      return NextResponse.json({ error: 'El título es obligatorio para eventos' }, { status: 400 })
+    }
+
+    // Calcular diaSemana según tipo
+    const diaSemana = tipo === 'clase'
+      ? (dayOfWeek === 2 ? 'martes' : 'viernes')
+      : getDiaSemanaCompleto(fechaDate)
+
+    // Horas default solo para clases regulares
     const defaultHoraInicio = dayOfWeek === 2 ? '18:30' : '17:30'
     const defaultHoraFin = dayOfWeek === 2 ? '20:30' : '21:00'
+
+    // Para eventos, horaInicio y horaFin son requeridos
+    if (tipo === 'evento' && (!horaInicio || !horaFin)) {
+      return NextResponse.json({ error: 'Hora de inicio y fin requeridas para eventos' }, { status: 400 })
+    }
 
     // Normalizar docenteIds a array
     const docenteIdsArray: string[] = Array.isArray(docenteIds) ? docenteIds : (docenteIds ? [docenteIds] : [])
 
     // kitaIds: si no se especifica, usar la kitá actual
-    // si es array vacío o tiene valores, usar esos
     let kitaIdsArray: string[] = [session.kitaId]
     if (kitaIds !== undefined) {
       kitaIdsArray = Array.isArray(kitaIds) ? kitaIds : [kitaIds]
-      // Asegurar que la kitá actual siempre esté incluida
       if (!kitaIdsArray.includes(session.kitaId)) {
         kitaIdsArray.push(session.kitaId)
       }
     }
 
-    // Verificar si ya existe una clase en esa fecha
     const startOfDay = new Date(year, month - 1, day, 0, 0, 0)
     const endOfDay = new Date(year, month - 1, day, 23, 59, 59)
 
-    const existingClase = await prisma.clase.findFirst({
-      where: {
-        fecha: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        // Verificar que sea de la kitá actual
-        kitot: {
-          some: { kitaId: session.kitaId }
-        }
-      },
-    })
-
-    if (existingClase) {
-      // Actualizar clase existente
-      const clase = await prisma.clase.update({
-        where: { id: existingClase.id },
-        data: {
-          titulo: titulo || null,
-          horaInicio: horaInicio || defaultHoraInicio,
-          horaFin: horaFin || defaultHoraFin,
+    // Para eventos: siempre crear nuevo (múltiples eventos por día permitidos)
+    // Para clases: upsert (una clase por día por kitá)
+    if (tipo === 'clase') {
+      const existingClase = await prisma.clase.findFirst({
+        where: {
+          tipo: 'clase',
+          fecha: { gte: startOfDay, lte: endOfDay },
+          kitot: { some: { kitaId: session.kitaId } },
         },
       })
 
-      // Actualizar relaciones de docentes
-      await prisma.claseDocente.deleteMany({
-        where: { claseId: existingClase.id }
-      })
-
-      if (docenteIdsArray.length > 0) {
-        await prisma.claseDocente.createMany({
-          data: docenteIdsArray.map(docenteId => ({
-            claseId: existingClase.id,
-            docenteId
-          }))
-        })
-      }
-
-      // Actualizar relaciones de kitot
-      await prisma.claseKita.deleteMany({
-        where: { claseId: existingClase.id }
-      })
-
-      await prisma.claseKita.createMany({
-        data: kitaIdsArray.map(kitaId => ({
-          claseId: existingClase.id,
-          kitaId
-        }))
-      })
-
-      // Obtener clase actualizada
-      const claseConRelaciones = await prisma.clase.findUnique({
-        where: { id: clase.id },
-        include: {
-          docentes: {
-            include: { docente: true }
+      if (existingClase) {
+        const clase = await prisma.clase.update({
+          where: { id: existingClase.id },
+          data: {
+            titulo: titulo || null,
+            horaInicio: horaInicio || defaultHoraInicio,
+            horaFin: horaFin || defaultHoraFin,
           },
-          kitot: {
-            include: { kita: true }
-          }
-        }
-      })
+        })
 
-      return NextResponse.json({ success: true, clase: claseConRelaciones, updated: true })
+        await prisma.claseDocente.deleteMany({ where: { claseId: existingClase.id } })
+        if (docenteIdsArray.length > 0) {
+          await prisma.claseDocente.createMany({
+            data: docenteIdsArray.map(docenteId => ({ claseId: existingClase.id, docenteId }))
+          })
+        }
+
+        await prisma.claseKita.deleteMany({ where: { claseId: existingClase.id } })
+        await prisma.claseKita.createMany({
+          data: kitaIdsArray.map(kitaId => ({ claseId: existingClase.id, kitaId }))
+        })
+
+        const claseConRelaciones = await prisma.clase.findUnique({
+          where: { id: clase.id },
+          include: { docentes: { include: { docente: true } }, kitot: { include: { kita: true } } }
+        })
+        return NextResponse.json({ success: true, clase: claseConRelaciones, updated: true })
+      }
     }
 
-    // Crear nueva clase
+    // Crear nueva clase o evento
     const clase = await prisma.clase.create({
       data: {
+        tipo,
         fecha: fechaDate,
         diaSemana,
         horaInicio: horaInicio || defaultHoraInicio,
         horaFin: horaFin || defaultHoraFin,
         titulo: titulo || null,
         docentes: docenteIdsArray.length > 0 ? {
-          create: docenteIdsArray.map(docenteId => ({
-            docenteId
-          }))
+          create: docenteIdsArray.map(docenteId => ({ docenteId }))
         } : undefined,
         kitot: {
-          create: kitaIdsArray.map(kitaId => ({
-            kitaId
-          }))
+          create: kitaIdsArray.map(kitaId => ({ kitaId }))
         }
       },
       include: {
-        docentes: {
-          include: { docente: true }
-        },
-        kitot: {
-          include: { kita: true }
-        }
+        docentes: { include: { docente: true } },
+        kitot: { include: { kita: true } }
       },
     })
 
