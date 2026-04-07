@@ -32,34 +32,10 @@ export async function GET() {
       take: 20, // Ultimas 20 clases
     })
 
-    // Verificar cuales tienen feriado
-    const fechas = clases.map(c => {
-      const startOfDay = new Date(c.fecha)
-      startOfDay.setHours(0, 0, 0, 0)
-      return startOfDay
-    })
-
-    const feriados = await prisma.feriado.findMany({
-      where: {
-        fecha: {
-          in: fechas,
-        },
-      },
-    })
-
-    const feriadosFechas = new Set(
-      feriados.map(f => f.fecha.toISOString().split('T')[0])
-    )
-
-    // Filtrar clases que no caen en feriado
-    const clasesValidas = clases.filter(c => {
-      const fechaStr = c.fecha.toISOString().split('T')[0]
-      return !feriadosFechas.has(fechaStr)
-    })
-
     return NextResponse.json({
-      clases: clasesValidas.map((c) => ({
+      clases: clases.map((c) => ({
         id: c.id,
+        tipo: c.tipo,
         fecha: c.fecha.toISOString().split('T')[0],
         diaSemana: c.diaSemana,
         horaInicio: c.horaInicio,

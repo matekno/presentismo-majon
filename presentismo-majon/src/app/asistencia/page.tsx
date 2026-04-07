@@ -12,6 +12,7 @@ interface Docente {
 
 interface ClasePlanificada {
   id: string
+  tipo: string
   fecha: string
   diaSemana: string
   horaInicio: string
@@ -130,7 +131,7 @@ export default function AsistenciaPage() {
               >
                 {clases.map((clase) => (
                   <option key={clase.id} value={clase.id}>
-                    {formatFecha(clase.fecha)} - {clase.titulo || clase.docentes?.map(d => d.apellido).join(', ') || clase.diaSemana}
+                    {clase.tipo === 'evento' ? '[Evento] ' : ''}{formatFecha(clase.fecha)} - {clase.titulo || clase.docentes?.map(d => d.apellido).join(', ') || clase.diaSemana}
                     {isHoy(clase.fecha) ? ` (${t('asistencia.today')})` : ''}
                     {clase.tieneAsistencias ? ' ✓' : ''}
                   </option>
@@ -146,7 +147,7 @@ export default function AsistenciaPage() {
                   onClick={() => setSelectedClaseId(clase.id)}
                   className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
                     selectedClaseId === clase.id
-                      ? 'bg-green-600 text-white'
+                      ? clase.tipo === 'evento' ? 'bg-amber-500 text-white' : 'bg-green-600 text-white'
                       : isHoy(clase.fecha)
                       ? 'bg-green-100 text-green-700 border-2 border-green-500'
                       : isPasada(clase.fecha) && clase.tieneAsistencias
@@ -156,6 +157,7 @@ export default function AsistenciaPage() {
                       : 'bg-white text-gray-700 border border-gray-300'
                   }`}
                 >
+                  {clase.tipo === 'evento' && <span className="mr-1">★</span>}
                   {formatFecha(clase.fecha)}
                   {clase.tieneAsistencias && <span className="ml-1">✓</span>}
                 </button>

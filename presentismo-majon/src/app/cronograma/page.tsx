@@ -19,6 +19,7 @@ interface Kita {
 
 interface Clase {
   id: string
+  tipo: string
   fecha: string
   diaSemana: string
   horaInicio: string
@@ -46,6 +47,7 @@ interface DiaCalendario {
   esHoy: boolean
   esDiaClase: boolean
   clase?: Clase
+  eventos?: Clase[]
   feriado?: Feriado
 }
 
@@ -83,7 +85,8 @@ function generarDiasCalendario(mes: string, clases: Clase[], feriados: Feriado[]
     const dayOfWeek = fecha.getDay()
     const esDiaClase = dayOfWeek === 2 || dayOfWeek === 5
 
-    const clase = clases.find((c) => c.fecha === fechaStr)
+    const clase = clases.find((c) => c.fecha === fechaStr && c.tipo === 'clase')
+    const eventos = clases.filter((c) => c.fecha === fechaStr && c.tipo === 'evento')
     const feriado = feriados.find((f) => f.fecha === fechaStr)
 
     dias.push({
@@ -93,6 +96,7 @@ function generarDiasCalendario(mes: string, clases: Clase[], feriados: Feriado[]
       esHoy: fechaStr === hoyStr,
       esDiaClase,
       clase,
+      eventos: eventos.length > 0 ? eventos : undefined,
       feriado,
     })
   }
@@ -125,6 +129,7 @@ export default function CronogramaPage() {
   const [selectedDia, setSelectedDia] = useState<DiaCalendario | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({
+    tipo: 'clase' as 'clase' | 'evento',
     titulo: '',
     docenteIds: [] as string[],
     horaInicio: '',
@@ -193,12 +198,13 @@ export default function CronogramaPage() {
   }
 
   const handleDiaClick = (dia: DiaCalendario) => {
-    if (!dia.esMes || !dia.esDiaClase || dia.feriado) return
+    if (!dia.esMes) return
 
     setSelectedDia(dia)
     if (dia.clase) {
       const claseKitaIds = dia.clase.kitot?.map(k => k.id) || []
       setFormData({
+        tipo: 'clase',
         titulo: dia.clase.titulo || '',
         docenteIds: dia.clase.docentes?.map(d => d.id) || [],
         horaInicio: dia.clase.horaInicio,
@@ -207,16 +213,20 @@ export default function CronogramaPage() {
         kitaIds: claseKitaIds,
       })
     } else {
-      const [, , dayStr] = dia.fecha.split('-')
       const [yearNum, monthNum] = mesActual.split('-').map(Number)
+      const [, , dayStr] = dia.fecha.split('-')
       const fecha = new Date(yearNum, monthNum - 1, parseInt(dayStr))
-      const isMartes = fecha.getDay() === 2
+      const dow = fecha.getDay()
+      const isMartes = dow === 2
+      const isViernes = dow === 5
+      const esDiaClaseNormal = isMartes || isViernes
 
       setFormData({
+        tipo: esDiaClaseNormal ? 'clase' : 'evento',
         titulo: '',
         docenteIds: [],
-        horaInicio: isMartes ? '18:30' : '17:30',
-        horaFin: isMartes ? '20:30' : '21:00',
+        horaInicio: isMartes ? '18:30' : isViernes ? '17:30' : '',
+        horaFin: isMartes ? '20:30' : isViernes ? '21:00' : '',
         esCompartida: false,
         kitaIds: [],
       })
@@ -309,6 +319,7 @@ export default function CronogramaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fecha: selectedDia.fecha,
+          tipo: formData.tipo,
           titulo: formData.titulo || null,
           docenteIds: formData.docenteIds,
           horaInicio: formData.horaInicio,
@@ -323,15 +334,15 @@ export default function CronogramaPage() {
           .map(id => docentes.find(d => d.id === id))
           .filter((d): d is Docente => d !== undefined)
 
-        // Determinar las kitot de la clase
         const kitotSeleccionadas = formData.esCompartida
           ? formData.kitaIds.map(id => kitot.find(k => k.id === id)).filter((k): k is Kita => k !== undefined)
           : kitot.filter(k => k.id === currentKitaId)
 
         const nuevaClase: Clase = {
           id: data.clase?.id || selectedDia.clase?.id || '',
+          tipo: formData.tipo,
           fecha: selectedDia.fecha,
-          diaSemana: selectedDia.fecha.includes('2') ? 'martes' : 'viernes',
+          diaSemana: data.clase?.diaSemana || '',
           horaInicio: formData.horaInicio,
           horaFin: formData.horaFin,
           titulo: formData.titulo || null,
@@ -344,11 +355,9 @@ export default function CronogramaPage() {
         }
 
         // Actualizar estado local inmediatamente
-        if (selectedDia.clase) {
-          // Actualizar clase existente
+        if (selectedDia.clase && formData.tipo === 'clase') {
           setClases(prev => prev.map(c => c.id === selectedDia.clase!.id ? nuevaClase : c))
         } else {
-          // Agregar nueva clase
           setClases(prev => [...prev, nuevaClase])
         }
       }
@@ -469,13 +478,17 @@ export default function CronogramaPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex gap-4 mb-4 text-sm">
+        <div className="flex flex-wrap gap-4 mb-4 text-sm">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded bg-blue-500"></div>
             <span className="text-gray-600">Clase planificada</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-purple-400"></div>
+            <div className="w-3 h-3 rounded bg-amber-500"></div>
+            <span className="text-gray-600">Evento especial</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-purple-400"></div>
             <span className="text-gray-600">Feriado</span>
           </div>
         </div>
@@ -507,11 +520,12 @@ export default function CronogramaPage() {
                 <button
                   key={index}
                   onClick={() => handleDiaClick(dia)}
-                  disabled={!dia.esMes || !dia.esDiaClase || !!dia.feriado}
+                  disabled={!dia.esMes}
                   className={`
                     aspect-square p-1 border-b border-r relative
                     ${!dia.esMes ? 'bg-gray-50 text-gray-300' : ''}
-                    ${dia.esMes && dia.esDiaClase && !dia.feriado ? 'hover:bg-blue-50 cursor-pointer' : ''}
+                    ${dia.esMes && dia.esDiaClase ? 'hover:bg-blue-50 cursor-pointer' : ''}
+                    ${dia.esMes && !dia.esDiaClase ? 'hover:bg-amber-50 cursor-pointer' : ''}
                     ${dia.esHoy ? 'ring-2 ring-blue-500 ring-inset' : ''}
                   `}
                 >
@@ -549,12 +563,21 @@ export default function CronogramaPage() {
                     </div>
                   )}
 
+                  {/* Indicador de eventos */}
+                  {dia.eventos && dia.eventos.length > 0 && (
+                    <div className={`absolute ${dia.clase && !dia.clase.cancelada ? 'bottom-6' : 'bottom-1'} left-1 right-1`}>
+                      <div className="bg-amber-500 text-white text-xs rounded px-1 py-0.5 truncate">
+                        {dia.eventos.length === 1
+                          ? (dia.eventos[0].titulo || 'Evento')
+                          : `${dia.eventos.length} eventos`}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Indicador de feriado */}
                   {dia.feriado && (
-                    <div className="absolute bottom-1 left-1 right-1">
-                      <div className="bg-purple-400 text-white text-xs rounded px-1 py-0.5 truncate">
-                        {dia.feriado.nombre}
-                      </div>
+                    <div className="absolute top-0.5 right-0.5">
+                      <div className="w-2 h-2 rounded-full bg-purple-400" title={dia.feriado.nombre} />
                     </div>
                   )}
 
@@ -574,12 +597,18 @@ export default function CronogramaPage() {
 
         {/* Stats */}
         <div className="mt-4 bg-white rounded-xl p-4 shadow-sm">
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-4 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-blue-600">
-                {clases.filter((c) => !c.cancelada).length}
+                {clases.filter((c) => !c.cancelada && c.tipo === 'clase').length}
               </div>
-              <div className="text-sm text-gray-500">Clases planificadas</div>
+              <div className="text-sm text-gray-500">Clases</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-amber-500">
+                {clases.filter((c) => !c.cancelada && c.tipo === 'evento').length}
+              </div>
+              <div className="text-sm text-gray-500">Eventos</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-green-600">
@@ -601,7 +630,11 @@ export default function CronogramaPage() {
           <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex items-center justify-between">
               <h3 className="font-semibold text-lg">
-                {selectedDia.clase ? 'Editar clase' : 'Nueva clase'}
+                {selectedDia.clase
+                  ? 'Editar clase'
+                  : formData.tipo === 'evento'
+                  ? 'Nuevo evento especial'
+                  : 'Nueva clase'}
               </h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -620,15 +653,43 @@ export default function CronogramaPage() {
                 })}
               </div>
 
+              {/* Selector de tipo - solo en días de clase y al crear nuevo */}
+              {!selectedDia.clase && (
+                selectedDia.esDiaClase ? (
+                  <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(p => ({ ...p, tipo: 'clase', horaInicio: (() => { const [y,m] = mesActual.split('-').map(Number); const d = new Date(y,m-1,parseInt(selectedDia.fecha.split('-')[2])); return d.getDay()===2?'18:30':'17:30' })(), horaFin: (() => { const [y,m] = mesActual.split('-').map(Number); const d = new Date(y,m-1,parseInt(selectedDia.fecha.split('-')[2])); return d.getDay()===2?'20:30':'21:00' })() }))}
+                      className={`flex-1 py-2 text-sm font-medium transition ${formData.tipo === 'clase' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                    >
+                      Clase
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(p => ({ ...p, tipo: 'evento', horaInicio: '', horaFin: '' }))}
+                      className={`flex-1 py-2 text-sm font-medium transition ${formData.tipo === 'evento' ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                    >
+                      Evento especial
+                    </button>
+                  </div>
+                ) : (
+                  <div className="px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                    <span className="text-sm text-amber-700 font-medium">Evento especial</span>
+                    <span className="text-xs text-amber-600 ml-2">(días que no son martes ni viernes)</span>
+                  </div>
+                )
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Titulo / Tema
+                  {formData.tipo === 'evento' ? 'Nombre del evento *' : 'Titulo / Tema'}
                 </label>
                 <input
                   type="text"
                   value={formData.titulo}
                   onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                  placeholder="Ej: Parashat Hashavua"
+                  placeholder={formData.tipo === 'evento' ? 'Ej: Acto de Iom Hashoá' : 'Ej: Parashat Hashavua'}
+                  required={formData.tipo === 'evento'}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -636,7 +697,7 @@ export default function CronogramaPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Docentes
+                    Docentes {formData.tipo === 'evento' && <span className="text-gray-400 font-normal">(opcional)</span>}
                   </label>
                   <button
                     type="button"
