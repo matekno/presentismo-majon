@@ -300,7 +300,30 @@
   },
   "reportes": {
     "title": "Reportes",
+    "subtitle": "¿Qué querés analizar?",
     "loading": "Cargando reportes...",
+    "cards": {
+      "talmidim": {
+        "title": "Por talmid",
+        "description": "Asistencia individual de cada talmid"
+      },
+      "clases": {
+        "title": "Por clase",
+        "description": "Cómo fue la asistencia cada día"
+      },
+      "resumen": {
+        "title": "Resumen general",
+        "description": "% global, tendencia y días de la semana"
+      },
+      "alertas": {
+        "title": "Alertas de ausentismo",
+        "description": "Talmidim en riesgo para seguir de cerca"
+      },
+      "tardanzas": {
+        "title": "Tardanzas y justificaciones",
+        "description": "Quién llega tarde y ausencias justificadas"
+      }
+    },
     "stats": {
       "totalClasses": "Clases registradas",
       "present": "presentes",
@@ -310,6 +333,77 @@
     "history": {
       "title": "Historial",
       "empty": "Sin registros"
+    },
+    "talmidim": {
+      "title": "Asistencia por talmid",
+      "loading": "Cargando talmidim...",
+      "empty": "No hay talmidim para mostrar"
+    },
+    "clases": {
+      "title": "Asistencia por clase",
+      "loading": "Cargando clases...",
+      "empty": "Todavía no hay clases anteriores",
+      "totalLabel": "Clases anteriores",
+      "event": "Evento",
+      "noAttendance": "Sin asistencia tomada",
+      "registros": "{count} de {total} talmidim",
+      "detail": {
+        "title": "Detalle de la clase",
+        "loading": "Cargando asistencia...",
+        "attendancePercent": "Asistencia del día",
+        "present": "Presentes",
+        "late": "Tardanzas",
+        "absent": "Ausentes",
+        "unmarked": "Sin marcar",
+        "emptyGroup": "Nadie en esta categoría",
+        "noJustification": "Sin justificación"
+      }
+    },
+    "resumen": {
+      "title": "Resumen general",
+      "loading": "Cargando resumen...",
+      "empty": "Todavía no hay datos suficientes",
+      "globalAttendance": "Asistencia global",
+      "classesWithAttendance": "Clases con asistencia",
+      "avgPerClass": "Promedio por clase",
+      "avgPerClassUnit": "talmidim presentes",
+      "trend": {
+        "title": "Tendencia de asistencia",
+        "subtitle": "% por clase, de la más antigua a la más reciente",
+        "empty": "Sin clases para graficar"
+      },
+      "byDay": {
+        "title": "Martes vs Viernes",
+        "martes": "Martes",
+        "viernes": "Viernes",
+        "classes": "{count} clases",
+        "noData": "Sin datos"
+      }
+    },
+    "alertas": {
+      "title": "Alertas de ausentismo",
+      "loading": "Cargando alertas...",
+      "subtitle": "Talmidim por debajo del {threshold}% o con {streak}+ ausencias seguidas",
+      "empty": "¡Todo en orden! No hay talmidim en riesgo",
+      "ofClasses": "{taken} de {total} clases",
+      "reasonLow": "{percent}% de asistencia",
+      "reasonStreak": "{count} ausencias seguidas"
+    },
+    "tardanzas": {
+      "title": "Tardanzas y justificaciones",
+      "loading": "Cargando datos...",
+      "empty": "No hay datos para mostrar",
+      "summary": {
+        "title": "Ausencias del período",
+        "justified": "Justificadas",
+        "unjustified": "Injustificadas",
+        "lateTotal": "Tardanzas totales"
+      },
+      "ranking": {
+        "title": "Ranking de tardanzas",
+        "empty": "No hay tardanzas registradas",
+        "absences": "{justified} just. · {unjustified} injust."
+      }
     }
   },
   "feriados": {
