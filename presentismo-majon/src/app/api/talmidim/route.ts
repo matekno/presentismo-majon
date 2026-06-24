@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Obtener sesión con kitá
     const session = await getSession()
@@ -10,9 +10,12 @@ export async function GET() {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
+    // ?estado=inactivos → talmidim dados de baja. Por defecto, solo activos.
+    const inactivos = request.nextUrl.searchParams.get('estado') === 'inactivos'
+
     const talmidim = await prisma.talmid.findMany({
       where: {
-        activo: true,
+        activo: !inactivos,
         kitaId: session.kitaId, // Filtrar por kitá
       },
       orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],

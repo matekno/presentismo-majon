@@ -111,7 +111,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { nombre, apellido, fechaNacimiento, telefono, email, fotoUrl } = body
+    const { nombre, apellido, fechaNacimiento, telefono, email, fotoUrl, activo } = body
 
     const talmid = await prisma.talmid.update({
       where: {
@@ -125,6 +125,7 @@ export async function PUT(
         telefono: telefono !== undefined ? telefono : undefined,
         email: email !== undefined ? email : undefined,
         fotoUrl: fotoUrl !== undefined ? fotoUrl : undefined,
+        activo: typeof activo === 'boolean' ? activo : undefined, // Reactivar baja
       },
     })
 
@@ -142,6 +143,34 @@ export async function PUT(
     })
   } catch (error) {
     console.error('Error updating talmid:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+
+// Dar de baja (soft delete): marca activo = false. Los datos se conservan.
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+
+  try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    await prisma.talmid.update({
+      where: {
+        id,
+        kitaId: session.kitaId, // Verificar que pertenece a la kitá
+      },
+      data: { activo: false },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deactivating talmid:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }

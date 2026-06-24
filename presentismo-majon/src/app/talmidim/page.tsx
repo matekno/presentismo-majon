@@ -22,20 +22,42 @@ export default function TalmidimPage() {
   const [talmidim, setTalmidim] = useState<Talmid[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [verBaja, setVerBaja] = useState(false)
+  const [reactivando, setReactivando] = useState<string | null>(null)
 
   useEffect(() => {
+    setLoading(true)
     fetchTalmidim()
-  }, [])
+  }, [verBaja])
 
   const fetchTalmidim = async () => {
     try {
-      const res = await fetch('/api/talmidim')
+      const res = await fetch(`/api/talmidim${verBaja ? '?estado=inactivos' : ''}`)
       const data = await res.json()
       setTalmidim(data.talmidim || [])
     } catch (error) {
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleReactivar = async (e: React.MouseEvent, talmidId: string) => {
+    e.preventDefault()
+    setReactivando(talmidId)
+    try {
+      const res = await fetch(`/api/talmidim/${talmidId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: true }),
+      })
+      if (res.ok) {
+        setTalmidim((prev) => prev.filter((t) => t.id !== talmidId))
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setReactivando(null)
     }
   }
 
@@ -64,6 +86,26 @@ export default function TalmidimPage() {
 
       {/* Main Content */}
       <main className="max-w-lg mx-auto px-4 py-6">
+        {/* Toggle Activos / Dados de baja */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setVerBaja(false)}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${
+              !verBaja ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            Activos
+          </button>
+          <button
+            onClick={() => setVerBaja(true)}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${
+              verBaja ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            Dados de baja
+          </button>
+        </div>
+
         {/* Search */}
         <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
           <input
@@ -76,9 +118,11 @@ export default function TalmidimPage() {
         </div>
 
         {/* Stats */}
-        <div className="bg-indigo-50 rounded-xl p-4 mb-4 text-center">
-          <span className="text-2xl font-bold text-indigo-700">{talmidim.length}</span>
-          <span className="text-indigo-600 ml-2">talmidim activos</span>
+        <div className={`rounded-xl p-4 mb-4 text-center ${verBaja ? 'bg-red-50' : 'bg-indigo-50'}`}>
+          <span className={`text-2xl font-bold ${verBaja ? 'text-red-700' : 'text-indigo-700'}`}>{talmidim.length}</span>
+          <span className={`ml-2 ${verBaja ? 'text-red-600' : 'text-indigo-600'}`}>
+            {verBaja ? 'talmidim dados de baja' : 'talmidim activos'}
+          </span>
         </div>
 
         {loading ? (
@@ -121,10 +165,20 @@ export default function TalmidimPage() {
                     </div>
                   </div>
 
-                  {/* Arrow */}
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  {/* Reactivar (en vista de baja) o flecha */}
+                  {verBaja ? (
+                    <button
+                      onClick={(e) => handleReactivar(e, talmid.id)}
+                      disabled={reactivando === talmid.id}
+                      className="text-sm font-semibold text-green-600 hover:bg-green-50 border border-green-200 px-3 py-1 rounded-lg transition disabled:opacity-50"
+                    >
+                      {reactivando === talmid.id ? '...' : 'Reactivar'}
+                    </button>
+                  ) : (
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
                 </div>
               </Link>
             ))}
@@ -132,6 +186,12 @@ export default function TalmidimPage() {
             {filteredTalmidim.length === 0 && search && (
               <div className="text-center text-gray-500 py-8">
                 No se encontraron talmidim con &quot;{search}&quot;
+              </div>
+            )}
+
+            {filteredTalmidim.length === 0 && !search && (
+              <div className="text-center text-gray-500 py-8">
+                {verBaja ? 'No hay talmidim dados de baja' : 'No hay talmidim activos'}
               </div>
             )}
           </div>

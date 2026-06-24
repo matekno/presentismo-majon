@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Facehash } from 'facehash'
 
 const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b']
@@ -70,8 +71,10 @@ export default function TalmidFichaPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
+  const router = useRouter()
   const [data, setData] = useState<TalmidData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [processingBaja, setProcessingBaja] = useState(false)
   const [activeTab, setActiveTab] = useState<'info' | 'notas' | 'asistencia' | 'vacaciones'>('info')
   const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState({
@@ -146,6 +149,41 @@ export default function TalmidFichaPage({
       console.error('Error:', error)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDarDeBaja = async () => {
+    if (!data?.talmid) return
+    if (!confirm(`¿Dar de baja a ${data.talmid.nombre} ${data.talmid.apellido}? Dejará de aparecer en los listados, la toma de asistencia y los reportes. Podés reactivarlo más adelante.`)) return
+
+    setProcessingBaja(true)
+    try {
+      const res = await fetch(`/api/talmidim/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        router.push('/talmidim')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setProcessingBaja(false)
+    }
+  }
+
+  const handleReactivar = async () => {
+    setProcessingBaja(true)
+    try {
+      const res = await fetch(`/api/talmidim/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: true }),
+      })
+      if (res.ok) {
+        await fetchTalmid()
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setProcessingBaja(false)
     }
   }
 
@@ -435,6 +473,22 @@ export default function TalmidFichaPage({
         </div>
       </header>
 
+      {/* Banner de baja */}
+      {!talmid.activo && (
+        <div className="bg-red-600 text-white">
+          <div className="max-w-lg mx-auto px-4 py-2 flex items-center justify-between gap-3">
+            <span className="text-sm font-medium">Este talmid está dado de baja</span>
+            <button
+              onClick={handleReactivar}
+              disabled={processingBaja}
+              className="bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-3 py-1 rounded-lg transition disabled:opacity-50"
+            >
+              {processingBaja ? 'Reactivando...' : 'Reactivar'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Stats Bar */}
       <div className="bg-white shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-3">
@@ -677,6 +731,19 @@ export default function TalmidFichaPage({
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Dar de baja */}
+            {!editMode && talmid.activo && (
+              <div className="pt-4">
+                <button
+                  onClick={handleDarDeBaja}
+                  disabled={processingBaja}
+                  className="w-full text-red-600 hover:bg-red-50 border border-red-200 font-medium py-2 px-4 rounded-lg transition disabled:opacity-50"
+                >
+                  {processingBaja ? 'Procesando...' : 'Dar de baja'}
+                </button>
               </div>
             )}
           </div>
