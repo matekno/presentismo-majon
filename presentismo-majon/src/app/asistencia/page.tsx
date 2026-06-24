@@ -81,6 +81,18 @@ export default function AsistenciaPage() {
     return fechaStr < hoy
   }
 
+  // Chips: las 6 clases más cercanas a hoy (algunas pasadas, algunas próximas),
+  // ordenadas de más reciente/próxima a más antigua para mostrarlas.
+  const hoyTime = new Date(new Date().toISOString().split('T')[0]).getTime()
+  const chipsClases = [...clases]
+    .sort(
+      (a, b) =>
+        Math.abs(new Date(a.fecha).getTime() - hoyTime) -
+        Math.abs(new Date(b.fecha).getTime() - hoyTime)
+    )
+    .slice(0, 6)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -139,9 +151,9 @@ export default function AsistenciaPage() {
               </select>
             </div>
 
-            {/* Lista de clases recientes como chips */}
+            {/* Lista de clases más cercanas a hoy como chips */}
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              {clases.slice(0, 6).map((clase) => (
+              {chipsClases.map((clase) => (
                 <button
                   key={clase.id}
                   onClick={() => setSelectedClaseId(clase.id)}
