@@ -79,7 +79,12 @@ export default function TalmidimPage() {
               ← Volver
             </Link>
             <h1 className="text-xl font-bold">Talmidim</h1>
-            <div className="w-16"></div>
+            <Link
+              href="/talmidim/nuevo"
+              className="text-indigo-200 hover:text-white text-right w-16"
+            >
+              + Agregar
+            </Link>
           </div>
         </div>
       </header>

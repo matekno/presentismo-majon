@@ -47,3 +47,69 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    // Obtener sesión con kitá
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { nombre, apellido, fechaNacimiento, telefono, email, fotoUrl } = body
+
+    // Nombre y apellido son obligatorios
+    if (!nombre?.trim() || !apellido?.trim()) {
+      return NextResponse.json(
+        { error: 'Nombre y apellido son requeridos' },
+        { status: 400 }
+      )
+    }
+
+    // Normalizar email (opcional, pero debe ser único si se provee)
+    const emailNormalizado = email?.trim() ? email.trim().toLowerCase() : null
+
+    if (emailNormalizado) {
+      const existente = await prisma.talmid.findUnique({
+        where: { email: emailNormalizado },
+      })
+      if (existente) {
+        return NextResponse.json(
+          { error: 'Ya existe un talmid con ese email' },
+          { status: 409 }
+        )
+      }
+    }
+
+    const talmid = await prisma.talmid.create({
+      data: {
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : null,
+        telefono: telefono?.trim() || null,
+        email: emailNormalizado,
+        fotoUrl: fotoUrl || null,
+        kitaId: session.kitaId, // Asignar a la kitá actual
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      talmid: {
+        id: talmid.id,
+        nombre: talmid.nombre,
+        apellido: talmid.apellido,
+        fechaNacimiento: talmid.fechaNacimiento?.toISOString().split('T')[0] || null,
+        telefono: talmid.telefono,
+        email: talmid.email,
+        fotoUrl: talmid.fotoUrl,
+        cantidadAsistencias: 0,
+        cantidadNotas: 0,
+      },
+    })
+  } catch (error) {
+    console.error('Error creating talmid:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
