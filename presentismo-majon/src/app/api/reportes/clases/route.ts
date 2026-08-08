@@ -45,12 +45,15 @@ export async function GET() {
     })
 
     const reportes = clases.map((clase) => {
-      const tieneAsistencias = clase.asistencias.length > 0
       // Sin asistencia tomada no hay nada que medir: el porcentaje sería 0%
       // por un dato que falta cargar, no por inasistencia
-      const stats = tieneAsistencias
-        ? calcularStatsClase({ clase, talmidim, asistencias: clase.asistencias })
-        : null
+      const stats =
+        clase.asistencias.length > 0
+          ? calcularStatsClase({ clase, talmidim, asistencias: clase.asistencias })
+          : null
+      // Idem si todos los del padrón tenían ausencia programada: no queda nadie
+      // en el denominador y un 0% sería engañoso
+      const medible = (stats?.totalComputables ?? 0) > 0
 
       return {
         id: clase.id,
@@ -69,7 +72,7 @@ export async function GET() {
         justificadas: stats?.justificadas ?? 0,
         totalComputables: stats?.totalComputables ?? 0,
         porcentajeAsistencia: stats?.porcentaje ?? 0,
-        tieneAsistencias,
+        tieneAsistencias: medible,
       }
     })
 

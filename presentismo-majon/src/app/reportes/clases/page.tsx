@@ -150,6 +150,18 @@ export default function ReportesClasesPage() {
                       )}
                     </div>
                   )}
+
+                  {/* La fracción detrás del %, para poder auditarlo */}
+                  {clase.tieneAsistencias && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      {t('reportes.clases.registros', {
+                        count: clase.presentes + clase.tardanzas,
+                        total: clase.totalComputables,
+                      })}
+                      {clase.justificadas > 0 &&
+                        ` · ${t('reportes.talmidim.excused', { count: clase.justificadas })}`}
+                    </div>
+                  )}
                 </Link>
               ))}
             </div>

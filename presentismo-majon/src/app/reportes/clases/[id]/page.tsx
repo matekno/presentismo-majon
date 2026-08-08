@@ -13,6 +13,8 @@ interface Asistencia {
   justificacion: string | null
   tieneAusenciaProgramada: boolean
   ausenciaProgramadaJustificacion: string | null
+  /** Ya estaba de alta a la fecha de la clase (o tiene registro en ella). */
+  correspondeALaClase: boolean
 }
 
 interface Docente {
@@ -77,12 +79,11 @@ export default function ReporteClaseDetailPage({
   }
 
   // Mismo criterio que el resto de los reportes: el denominador son los
-  // talmidim que debían estar, no los que quedaron marcados
+  // talmidim que debían estar, no los que quedaron marcados. Los que entraron
+  // después de la clase no cuentan, igual que en el listado
+  const padron = asistencias.filter((a) => a.correspondeALaClase)
   const tipoPorTalmid = new Map(
-    asistencias.map((a) => [
-      a.talmidId,
-      clasificarAsistencia(a.estado, a.tieneAusenciaProgramada),
-    ])
+    padron.map((a) => [a.talmidId, clasificarAsistencia(a.estado, a.tieneAusenciaProgramada)])
   )
   const { porcentaje } = resumir(tipoPorTalmid.values())
 
@@ -142,7 +143,7 @@ export default function ReporteClaseDetailPage({
             {/* Grupos por estado */}
             <div className="space-y-4">
               {grupos.map((grupo) => {
-                const miembros = asistencias.filter(
+                const miembros = padron.filter(
                   (a) => tipoPorTalmid.get(a.talmidId) === grupo.tipo
                 )
                 return (

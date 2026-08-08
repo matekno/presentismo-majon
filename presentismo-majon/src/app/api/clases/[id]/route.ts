@@ -74,7 +74,14 @@ export async function GET(
       ausenciasProgramadas.map((a) => [a.talmidId, a])
     )
 
-    // Crear lista completa con estado de asistencia y ausencias programadas
+    // Crear lista completa con estado de asistencia y ausencias programadas.
+    //
+    // `correspondeALaClase` marca a quién computar en los reportes: los que ya
+    // estaban de alta a esa fecha, más cualquiera con registro. Sin esto el %
+    // del detalle no coincidía con el del listado, que sí filtra por alta.
+    // La pantalla de tomar asistencia lo ignora a propósito y muestra a todos,
+    // para poder cargar una clase vieja aunque el talmid se haya dado de alta
+    // después.
     const listaAsistencia = talmidim.map((talmid) => {
       const asistencia = asistenciasMap.get(talmid.id)
       const ausenciaProgramada = ausenciasMap.get(talmid.id)
@@ -86,6 +93,7 @@ export async function GET(
         justificacion: asistencia?.justificacion || null,
         tieneAusenciaProgramada: !!ausenciaProgramada,
         ausenciaProgramadaJustificacion: ausenciaProgramada?.justificacion || null,
+        correspondeALaClase: !!asistencia || toDayKey(talmid.createdAt) <= claseKey,
       }
     })
 

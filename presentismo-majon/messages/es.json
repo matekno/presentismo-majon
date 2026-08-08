@@ -381,7 +381,8 @@
       "trend": {
         "title": "Tendencia de asistencia",
         "subtitle": "% por clase, de la más antigua a la más reciente",
-        "empty": "Sin clases para graficar"
+        "empty": "Sin clases para graficar",
+        "truncated": "últimas {count}"
       },
       "byDay": {
         "title": "Martes vs Viernes",
