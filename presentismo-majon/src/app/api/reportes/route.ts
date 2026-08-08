@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { calcularStatsTalmid, detallarClasesTalmid, toDayKey } from '@/lib/asistencia'
+import { getClasesComputables } from '@/lib/asistencia.server'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -13,71 +15,63 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Obtener todos los talmidim activos de la kitá
-    const talmidim = await prisma.talmid.findMany({
-      where: {
-        activo: true,
-        kitaId: session.kitaId
-      },
-      orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
-      include: {
-        asistencias: {
-          include: {
-            clase: true,
+    const [talmidim, clases] = await Promise.all([
+      prisma.talmid.findMany({
+        where: {
+          activo: true,
+          kitaId: session.kitaId,
+        },
+        orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
+        include: {
+          asistencias: {
+            select: { claseId: true, estado: true, justificacion: true },
           },
-          orderBy: {
-            clase: {
-              fecha: 'desc',
-            },
+          ausenciasProgramadas: {
+            where: { activa: true },
+            select: { fechaInicio: true, fechaFin: true, justificacion: true },
           },
         },
-      },
-    })
-
-    // Obtener total de clases de la kitá que no fueron canceladas
-    const totalClases = await prisma.clase.count({
-      where: {
-        cancelada: false,
-        kitot: {
-          some: { kitaId: session.kitaId }
-        }
-      },
-    })
+      }),
+      // Clases que le corresponden a la kitá: pasadas, no canceladas y con
+      // asistencia tomada
+      getClasesComputables(session.kitaId),
+    ])
 
     // Calcular estadisticas por talmid
     const reportes = talmidim.map((talmid) => {
-      const asistencias = talmid.asistencias
-      const presentes = asistencias.filter((a) => a.estado === 'presente').length
-      const tardanzas = asistencias.filter((a) => a.estado === 'tardanza').length
-      const ausentes = asistencias.filter((a) => a.estado === 'ausente').length
-      const total = presentes + tardanzas + ausentes
-
-      const porcentajeAsistencia = total > 0
-        ? Math.round(((presentes + tardanzas) / total) * 100)
-        : 0
+      const args = {
+        clases,
+        asistencias: talmid.asistencias,
+        ausenciasProgramadas: talmid.ausenciasProgramadas,
+        desde: talmid.createdAt,
+      }
+      const stats = calcularStatsTalmid(args)
 
       return {
         id: talmid.id,
         nombre: talmid.nombre,
         apellido: talmid.apellido,
-        presentes,
-        tardanzas,
-        ausentes,
-        totalClasesTomadas: total,
-        porcentajeAsistencia,
-        historial: talmidId === talmid.id
-          ? asistencias.map((a) => ({
-              fecha: a.clase.fecha.toISOString().split('T')[0],
-              diaSemana: a.clase.diaSemana,
-              estado: a.estado,
-              justificacion: a.justificacion,
-            }))
-          : undefined,
+        presentes: stats.presentes,
+        tardanzas: stats.tardanzas,
+        ausentes: stats.ausentes,
+        sinRegistro: stats.sinRegistro,
+        justificadas: stats.justificadas,
+        totalComputables: stats.totalComputables,
+        porcentajeAsistencia: stats.porcentaje,
+        historial:
+          talmidId === talmid.id
+            ? detallarClasesTalmid(args).map((d) => ({
+                fecha: toDayKey(d.fecha),
+                diaSemana: d.diaSemana,
+                tipo: d.tipo,
+                justificacion: d.justificacion,
+              }))
+            : undefined,
       }
     })
 
     return NextResponse.json({
-      totalClases,
+      totalClases: clases.length,
       reportes,
     })
   } catch (error) {

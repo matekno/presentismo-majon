@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
+type TipoAsistencia = 'presentes' | 'tardanzas' | 'ausentes' | 'sinRegistro' | 'justificadas'
+
 interface Reporte {
   id: string
   nombre: string
@@ -11,12 +13,14 @@ interface Reporte {
   presentes: number
   tardanzas: number
   ausentes: number
-  totalClasesTomadas: number
+  sinRegistro: number
+  justificadas: number
+  totalComputables: number
   porcentajeAsistencia: number
   historial?: {
     fecha: string
     diaSemana: string
-    estado: string
+    tipo: TipoAsistencia
     justificacion: string | null
   }[]
 }
@@ -73,14 +77,16 @@ export default function ReportesTalmidimPage() {
     return 'text-red-600 bg-red-100'
   }
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'presente':
+  const getTipoColor = (tipo: TipoAsistencia) => {
+    switch (tipo) {
+      case 'presentes':
         return 'bg-green-100 text-green-700'
-      case 'tardanza':
+      case 'tardanzas':
         return 'bg-yellow-100 text-yellow-700'
-      case 'ausente':
+      case 'ausentes':
         return 'bg-red-100 text-red-700'
+      case 'sinRegistro':
+        return 'bg-orange-100 text-orange-700'
       default:
         return 'bg-gray-100 text-gray-700'
     }
@@ -166,10 +172,20 @@ export default function ReportesTalmidimPage() {
                         <div className="text-red-600">
                           <span className="font-semibold">{reporte.ausentes}</span> {t('reportes.stats.absent')}
                         </div>
+                        {reporte.sinRegistro > 0 && (
+                          <div className="text-orange-600">
+                            <span className="font-semibold">{reporte.sinRegistro}</span> {t('reportes.stats.unmarked')}
+                          </div>
+                        )}
                       </div>
 
                       <div className="mt-2 text-xs text-gray-500">
-                        {reporte.totalClasesTomadas} de {data.totalClases} clases
+                        {t('reportes.talmidim.computed', {
+                          count: reporte.totalComputables,
+                          total: data.totalClases,
+                        })}
+                        {reporte.justificadas > 0 &&
+                          ` · ${t('reportes.talmidim.excused', { count: reporte.justificadas })}`}
                       </div>
                     </button>
 
@@ -195,11 +211,12 @@ export default function ReportesTalmidimPage() {
                                   </span>
                                 </div>
                                 <span
-                                  className={`px-2 py-1 rounded text-xs font-medium ${getEstadoColor(
-                                    item.estado
+                                  className={`px-2 py-1 rounded text-xs font-medium ${getTipoColor(
+                                    item.tipo
                                   )}`}
+                                  title={item.justificacion ?? undefined}
                                 >
-                                  {item.estado}
+                                  {t(`reportes.history.tipo.${item.tipo}`)}
                                 </span>
                               </div>
                             ))}

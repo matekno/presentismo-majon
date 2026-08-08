@@ -11,7 +11,9 @@ interface Alerta {
   presentes: number
   tardanzas: number
   ausentes: number
-  totalRegistros: number
+  sinRegistro: number
+  justificadas: number
+  totalComputables: number
   porcentaje: number
   rachaActual: number
   motivos: ('low' | 'streak')[]
@@ -108,9 +110,11 @@ export default function ReportesAlertasPage() {
 
                     <div className="mt-2 text-xs text-gray-500">
                       {t('reportes.alertas.ofClasses', {
-                        taken: alerta.totalRegistros,
+                        taken: alerta.totalComputables,
                         total: data.totalClases,
                       })}
+                      {alerta.justificadas > 0 &&
+                        ` · ${t('reportes.talmidim.excused', { count: alerta.justificadas })}`}
                     </div>
                   </div>
                 ))}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { toDayKey } from '@/lib/asistencia'
 
 export async function GET(
   request: NextRequest,
@@ -55,13 +56,16 @@ export async function GET(
       clase.asistencias.map((a) => [a.talmidId, a])
     )
 
-    // Obtener ausencias programadas activas que incluyan la fecha de esta clase
-    const claseFecha = clase.fecha
+    // Obtener ausencias programadas activas que incluyan la fecha de esta clase.
+    // Se compara contra el día completo: las clases se guardan a medianoche
+    // local y las ausencias a medianoche UTC, así que comparar los Date crudos
+    // dejaba afuera a las ausencias de un solo día.
+    const claseKey = toDayKey(clase.fecha)
     const ausenciasProgramadas = await prisma.ausenciaProgramada.findMany({
       where: {
         activa: true,
-        fechaInicio: { lte: claseFecha },
-        fechaFin: { gte: claseFecha },
+        fechaInicio: { lte: new Date(`${claseKey}T23:59:59.999Z`) },
+        fechaFin: { gte: new Date(`${claseKey}T00:00:00.000Z`) },
       },
     })
 

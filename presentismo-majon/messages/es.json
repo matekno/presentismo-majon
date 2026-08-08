@@ -328,16 +328,26 @@
       "totalClasses": "Clases registradas",
       "present": "presentes",
       "late": "tardanzas",
-      "absent": "ausentes"
+      "absent": "ausentes",
+      "unmarked": "sin marcar"
     },
     "history": {
       "title": "Historial",
-      "empty": "Sin registros"
+      "empty": "Sin registros",
+      "tipo": {
+        "presentes": "presente",
+        "tardanzas": "tardanza",
+        "ausentes": "ausente",
+        "sinRegistro": "sin marcar",
+        "justificadas": "justificada"
+      }
     },
     "talmidim": {
       "title": "Asistencia por talmid",
       "loading": "Cargando talmidim...",
-      "empty": "No hay talmidim para mostrar"
+      "empty": "No hay talmidim para mostrar",
+      "computed": "{count} de {total} clases computadas",
+      "excused": "{count} justificadas"
     },
     "clases": {
       "title": "Asistencia por clase",
@@ -356,7 +366,8 @@
         "absent": "Ausentes",
         "unmarked": "Sin marcar",
         "emptyGroup": "Nadie en esta categoría",
-        "noJustification": "Sin justificación"
+        "noJustification": "Sin justificación",
+        "excused": "Justificadas"
       }
     },
     "resumen": {

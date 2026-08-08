@@ -14,11 +14,29 @@ interface Nota {
   createdAt: string
 }
 
+type TipoAsistencia = 'presentes' | 'tardanzas' | 'ausentes' | 'sinRegistro' | 'justificadas'
+
+const LABEL_TIPO: Record<TipoAsistencia, string> = {
+  presentes: 'presente',
+  tardanzas: 'tardanza',
+  ausentes: 'ausente',
+  sinRegistro: 'sin marcar',
+  justificadas: 'justificada',
+}
+
+const COLOR_TIPO: Record<TipoAsistencia, string> = {
+  presentes: 'bg-green-100 text-green-700',
+  tardanzas: 'bg-yellow-100 text-yellow-700',
+  ausentes: 'bg-red-100 text-red-700',
+  sinRegistro: 'bg-orange-100 text-orange-700',
+  justificadas: 'bg-gray-100 text-gray-700',
+}
+
 interface Asistencia {
   id: string
   fecha: string
   diaSemana: string
-  estado: string
+  tipo: TipoAsistencia
   justificacion: string | null
 }
 
@@ -47,7 +65,9 @@ interface Estadisticas {
   presentes: number
   tardanzas: number
   ausentes: number
-  totalClases: number
+  sinRegistro: number
+  justificadas: number
+  totalComputables: number
   porcentajeAsistencia: number
 }
 
@@ -518,6 +538,12 @@ export default function TalmidFichaPage({
               <div className="text-xs text-gray-500">Ausentes</div>
             </div>
           </div>
+          <div className="mt-2 text-center text-xs text-gray-500">
+            Sobre {estadisticas.totalComputables} clases que le correspondian
+            {estadisticas.sinRegistro > 0 && ` · ${estadisticas.sinRegistro} sin marcar`}
+            {estadisticas.justificadas > 0 &&
+              ` · ${estadisticas.justificadas} justificadas (no computan)`}
+          </div>
         </div>
       </div>
 
@@ -860,15 +886,9 @@ export default function TalmidFichaPage({
                     )}
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      a.estado === 'presente'
-                        ? 'bg-green-100 text-green-700'
-                        : a.estado === 'tardanza'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${COLOR_TIPO[a.tipo]}`}
                   >
-                    {a.estado}
+                    {LABEL_TIPO[a.tipo]}
                   </span>
                 </div>
               ))

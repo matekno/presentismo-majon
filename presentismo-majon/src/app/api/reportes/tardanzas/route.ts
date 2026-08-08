@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { detallarClasesTalmid } from '@/lib/asistencia'
+import { getClasesComputables } from '@/lib/asistencia.server'
 
 export async function GET() {
   try {
@@ -10,14 +12,20 @@ export async function GET() {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const talmidim = await prisma.talmid.findMany({
-      where: { activo: true, kitaId: session.kitaId },
-      orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
-      include: {
-        asistencias: { include: { clase: true } },
-        ausenciasProgramadas: { where: { activa: true } },
-      },
-    })
+    const [talmidim, clases] = await Promise.all([
+      prisma.talmid.findMany({
+        where: { activo: true, kitaId: session.kitaId },
+        orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
+        include: {
+          asistencias: { select: { claseId: true, estado: true, justificacion: true } },
+          ausenciasProgramadas: {
+            where: { activa: true },
+            select: { fechaInicio: true, fechaFin: true, justificacion: true },
+          },
+        },
+      }),
+      getClasesComputables(session.kitaId),
+    ])
 
     let totalJustificadas = 0
     let totalInjustificadas = 0
@@ -29,16 +37,25 @@ export async function GET() {
         let justificadas = 0
         let injustificadas = 0
 
-        for (const a of talmid.asistencias) {
-          if (a.estado === 'tardanza') {
+        const detalle = detallarClasesTalmid({
+          clases,
+          asistencias: talmid.asistencias,
+          ausenciasProgramadas: talmid.ausenciasProgramadas,
+          desde: talmid.createdAt,
+        })
+
+        for (const d of detalle) {
+          if (d.tipo === 'tardanzas') {
             tardanzas++
-          } else if (a.estado === 'ausente') {
-            const tieneJustificacion = !!a.justificacion && a.justificacion.trim() !== ''
-            const cubiertaPorPrograma = talmid.ausenciasProgramadas.some(
-              (ap) => ap.fechaInicio <= a.clase.fecha && ap.fechaFin >= a.clase.fecha
-            )
-            if (tieneJustificacion || cubiertaPorPrograma) justificadas++
+          } else if (d.tipo === 'justificadas') {
+            // Ausencia avisada de antemano
+            justificadas++
+          } else if (d.tipo === 'ausentes') {
+            if (d.justificacion && d.justificacion.trim() !== '') justificadas++
             else injustificadas++
+          } else if (d.tipo === 'sinRegistro') {
+            // No lo marcaron en una clase donde se tomó asistencia
+            injustificadas++
           }
         }
 

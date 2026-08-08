@@ -14,7 +14,9 @@ interface ClaseReporte {
   presentes: number
   tardanzas: number
   ausentes: number
-  totalRegistros: number
+  sinRegistro: number
+  justificadas: number
+  totalComputables: number
   porcentajeAsistencia: number
   tieneAsistencias: boolean
 }
@@ -141,6 +143,11 @@ export default function ReportesClasesPage() {
                       <div className="text-red-600">
                         <span className="font-semibold">{clase.ausentes}</span> {t('reportes.stats.absent')}
                       </div>
+                      {clase.sinRegistro > 0 && (
+                        <div className="text-orange-600">
+                          <span className="font-semibold">{clase.sinRegistro}</span> {t('reportes.stats.unmarked')}
+                        </div>
+                      )}
                     </div>
                   )}
                 </Link>

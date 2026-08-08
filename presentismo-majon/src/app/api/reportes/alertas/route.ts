@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { calcularStatsTalmid } from '@/lib/asistencia'
+import { getClasesComputables } from '@/lib/asistencia.server'
 
 const UMBRAL = 70 // % de asistencia por debajo del cual se considera "en riesgo"
 const RACHA_MIN = 3 // Ausencias consecutivas (más recientes) que disparan alerta
@@ -13,58 +15,47 @@ export async function GET() {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const talmidim = await prisma.talmid.findMany({
-      where: { activo: true, kitaId: session.kitaId },
-      orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
-      include: {
-        asistencias: {
-          include: { clase: true },
-          // Más reciente primero, para calcular la racha actual de ausencias
-          orderBy: { clase: { fecha: 'desc' } },
+    const [talmidim, clases] = await Promise.all([
+      prisma.talmid.findMany({
+        where: { activo: true, kitaId: session.kitaId },
+        orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
+        include: {
+          asistencias: { select: { claseId: true, estado: true } },
+          ausenciasProgramadas: {
+            where: { activa: true },
+            select: { fechaInicio: true, fechaFin: true },
+          },
         },
-      },
-    })
-
-    const totalClases = await prisma.clase.count({
-      where: {
-        cancelada: false,
-        kitot: { some: { kitaId: session.kitaId } },
-      },
-    })
+      }),
+      // Ordenadas de la más reciente a la más antigua: la racha se cuenta así
+      getClasesComputables(session.kitaId),
+    ])
 
     const alertas = talmidim
       .map((talmid) => {
-        const asistencias = talmid.asistencias
-        const presentes = asistencias.filter((a) => a.estado === 'presente').length
-        const tardanzas = asistencias.filter((a) => a.estado === 'tardanza').length
-        const ausentes = asistencias.filter((a) => a.estado === 'ausente').length
-        const totalRegistros = presentes + tardanzas + ausentes
-        const porcentaje =
-          totalRegistros > 0
-            ? Math.round(((presentes + tardanzas) / totalRegistros) * 100)
-            : 0
-
-        // Racha actual: ausencias consecutivas empezando por la clase más reciente
-        let rachaActual = 0
-        for (const a of asistencias) {
-          if (a.estado === 'ausente') rachaActual++
-          else break
-        }
+        const stats = calcularStatsTalmid({
+          clases,
+          asistencias: talmid.asistencias,
+          ausenciasProgramadas: talmid.ausenciasProgramadas,
+          desde: talmid.createdAt,
+        })
 
         const motivos: ('low' | 'streak')[] = []
-        if (totalRegistros > 0 && porcentaje < UMBRAL) motivos.push('low')
-        if (rachaActual >= RACHA_MIN) motivos.push('streak')
+        if (stats.totalComputables > 0 && stats.porcentaje < UMBRAL) motivos.push('low')
+        if (stats.rachaActual >= RACHA_MIN) motivos.push('streak')
 
         return {
           id: talmid.id,
           nombre: talmid.nombre,
           apellido: talmid.apellido,
-          presentes,
-          tardanzas,
-          ausentes,
-          totalRegistros,
-          porcentaje,
-          rachaActual,
+          presentes: stats.presentes,
+          tardanzas: stats.tardanzas,
+          ausentes: stats.ausentes,
+          sinRegistro: stats.sinRegistro,
+          justificadas: stats.justificadas,
+          totalComputables: stats.totalComputables,
+          porcentaje: stats.porcentaje,
+          rachaActual: stats.rachaActual,
           motivos,
         }
       })
@@ -75,7 +66,7 @@ export async function GET() {
     return NextResponse.json({
       umbral: UMBRAL,
       rachaMin: RACHA_MIN,
-      totalClases,
+      totalClases: clases.length,
       alertas,
     })
   } catch (error) {

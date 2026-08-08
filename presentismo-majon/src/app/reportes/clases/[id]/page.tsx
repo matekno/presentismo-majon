@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { clasificarAsistencia, resumir, type TipoAsistencia } from '@/lib/asistencia'
 
 interface Asistencia {
   talmidId: string
@@ -10,6 +11,8 @@ interface Asistencia {
   apellido: string
   estado: 'presente' | 'ausente' | 'tardanza' | null
   justificacion: string | null
+  tieneAusenciaProgramada: boolean
+  ausenciaProgramadaJustificacion: string | null
 }
 
 interface Docente {
@@ -28,13 +31,12 @@ interface Clase {
   docentes: Docente[]
 }
 
-type Grupo = 'presente' | 'tardanza' | 'ausente' | 'sinMarcar'
-
-const grupos: { key: Grupo; estado: Asistencia['estado']; labelKey: string; color: string; dot: string }[] = [
-  { key: 'presente', estado: 'presente', labelKey: 'present', color: 'text-green-700', dot: 'bg-green-500' },
-  { key: 'tardanza', estado: 'tardanza', labelKey: 'late', color: 'text-yellow-700', dot: 'bg-yellow-500' },
-  { key: 'ausente', estado: 'ausente', labelKey: 'absent', color: 'text-red-700', dot: 'bg-red-500' },
-  { key: 'sinMarcar', estado: null, labelKey: 'unmarked', color: 'text-gray-600', dot: 'bg-gray-400' },
+const grupos: { tipo: TipoAsistencia; labelKey: string; color: string; dot: string }[] = [
+  { tipo: 'presentes', labelKey: 'present', color: 'text-green-700', dot: 'bg-green-500' },
+  { tipo: 'tardanzas', labelKey: 'late', color: 'text-yellow-700', dot: 'bg-yellow-500' },
+  { tipo: 'ausentes', labelKey: 'absent', color: 'text-red-700', dot: 'bg-red-500' },
+  { tipo: 'sinRegistro', labelKey: 'unmarked', color: 'text-orange-700', dot: 'bg-orange-500' },
+  { tipo: 'justificadas', labelKey: 'excused', color: 'text-gray-600', dot: 'bg-gray-400' },
 ]
 
 export default function ReporteClaseDetailPage({
@@ -74,11 +76,15 @@ export default function ReporteClaseDetailPage({
     })
   }
 
-  const presentes = asistencias.filter((a) => a.estado === 'presente').length
-  const tardanzas = asistencias.filter((a) => a.estado === 'tardanza').length
-  const ausentes = asistencias.filter((a) => a.estado === 'ausente').length
-  const registros = presentes + tardanzas + ausentes
-  const porcentaje = registros > 0 ? Math.round(((presentes + tardanzas) / registros) * 100) : 0
+  // Mismo criterio que el resto de los reportes: el denominador son los
+  // talmidim que debían estar, no los que quedaron marcados
+  const tipoPorTalmid = new Map(
+    asistencias.map((a) => [
+      a.talmidId,
+      clasificarAsistencia(a.estado, a.tieneAusenciaProgramada),
+    ])
+  )
+  const { porcentaje } = resumir(tipoPorTalmid.values())
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -136,9 +142,11 @@ export default function ReporteClaseDetailPage({
             {/* Grupos por estado */}
             <div className="space-y-4">
               {grupos.map((grupo) => {
-                const miembros = asistencias.filter((a) => a.estado === grupo.estado)
+                const miembros = asistencias.filter(
+                  (a) => tipoPorTalmid.get(a.talmidId) === grupo.tipo
+                )
                 return (
-                  <div key={grupo.key} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div key={grupo.tipo} className="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                       <span className={`w-2.5 h-2.5 rounded-full ${grupo.dot}`}></span>
                       <h2 className={`font-semibold ${grupo.color}`}>
@@ -159,9 +167,14 @@ export default function ReporteClaseDetailPage({
                             <span className="text-gray-800">
                               <span className="font-medium">{a.apellido}</span>, {a.nombre}
                             </span>
-                            {grupo.key === 'ausente' && (
+                            {grupo.tipo === 'ausentes' && (
                               <p className="text-xs text-gray-500 mt-0.5">
                                 {a.justificacion || t('reportes.clases.detail.noJustification')}
+                              </p>
+                            )}
+                            {grupo.tipo === 'justificadas' && a.ausenciaProgramadaJustificacion && (
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {a.ausenciaProgramadaJustificacion}
                               </p>
                             )}
                           </li>
