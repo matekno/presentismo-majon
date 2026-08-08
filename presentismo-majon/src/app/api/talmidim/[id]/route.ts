@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { calcularStatsTalmid, detallarClasesTalmid, toDayKey } from '@/lib/asistencia'
+import { getClasesComputables } from '@/lib/asistencia.server'
+
+const MAX_HISTORIAL = 20
 
 export async function GET(
   request: NextRequest,
@@ -25,13 +29,11 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
         },
         asistencias: {
-          include: {
-            clase: true,
-          },
-          orderBy: {
-            clase: { fecha: 'desc' },
-          },
-          take: 20,
+          select: { claseId: true, estado: true, justificacion: true },
+        },
+        ausenciasProgramadas: {
+          where: { activa: true },
+          select: { fechaInicio: true, fechaFin: true, justificacion: true },
         },
       },
     })
@@ -40,25 +42,16 @@ export async function GET(
       return NextResponse.json({ error: 'Talmid no encontrado' }, { status: 404 })
     }
 
-    // Calcular estadisticas de asistencia
-    const todasAsistencias = await prisma.asistencia.findMany({
-      where: { talmidId: id },
-    })
-
-    const stats = todasAsistencias.reduce(
-      (acc, a) => {
-        if (a.estado === 'presente') acc.presentes++
-        else if (a.estado === 'tardanza') acc.tardanzas++
-        else if (a.estado === 'ausente') acc.ausentes++
-        return acc
-      },
-      { presentes: 0, tardanzas: 0, ausentes: 0 }
-    )
-
-    const totalClases = stats.presentes + stats.tardanzas + stats.ausentes
-    const porcentajeAsistencia = totalClases > 0
-      ? Math.round(((stats.presentes + stats.tardanzas) / totalClases) * 100)
-      : 0
+    // Estadisticas sobre las clases que le correspondian: de su kitá, pasadas,
+    // no canceladas y con asistencia tomada
+    const args = {
+      clases: await getClasesComputables(session.kitaId),
+      asistencias: talmid.asistencias,
+      ausenciasProgramadas: talmid.ausenciasProgramadas,
+      desde: talmid.createdAt,
+    }
+    const stats = calcularStatsTalmid(args)
+    const historial = detallarClasesTalmid(args).slice(0, MAX_HISTORIAL)
 
     return NextResponse.json({
       talmid: {
@@ -78,17 +71,21 @@ export async function GET(
         contenido: n.contenido,
         createdAt: n.createdAt.toISOString(),
       })),
-      asistencias: talmid.asistencias.map((a) => ({
-        id: a.id,
-        fecha: a.clase.fecha.toISOString().split('T')[0],
-        diaSemana: a.clase.diaSemana,
-        estado: a.estado,
-        justificacion: a.justificacion,
+      asistencias: historial.map((d) => ({
+        id: d.claseId,
+        fecha: toDayKey(d.fecha),
+        diaSemana: d.diaSemana,
+        tipo: d.tipo,
+        justificacion: d.justificacion,
       })),
       estadisticas: {
-        ...stats,
-        totalClases,
-        porcentajeAsistencia,
+        presentes: stats.presentes,
+        tardanzas: stats.tardanzas,
+        ausentes: stats.ausentes,
+        sinRegistro: stats.sinRegistro,
+        justificadas: stats.justificadas,
+        totalComputables: stats.totalComputables,
+        porcentajeAsistencia: stats.porcentaje,
       },
     })
   } catch (error) {

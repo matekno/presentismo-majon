@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { calcularStatsClase } from '@/lib/asistencia'
 
 const MAX_TREND = 30 // Cantidad máxima de puntos en el gráfico de tendencia
 
@@ -15,6 +16,19 @@ export async function GET() {
     const finDeHoy = new Date()
     finDeHoy.setHours(23, 59, 59, 999)
 
+    // Padrón de la kitá: quién debía estar en cada clase
+    const talmidim = await prisma.talmid.findMany({
+      where: { activo: true, kitaId: session.kitaId },
+      select: {
+        id: true,
+        createdAt: true,
+        ausenciasProgramadas: {
+          where: { activa: true },
+          select: { fechaInicio: true, fechaFin: true },
+        },
+      },
+    })
+
     // Clases pasadas/de hoy, no canceladas, de la kitá (asc por fecha)
     const clases = await prisma.clase.findMany({
       where: {
@@ -25,49 +39,57 @@ export async function GET() {
         },
       },
       include: {
-        asistencias: { select: { estado: true } },
+        asistencias: { select: { talmidId: true, estado: true } },
       },
       orderBy: { fecha: 'asc' },
     })
 
     let sumAsistieron = 0
-    let sumRegistros = 0
-    const porDia: Record<'martes' | 'viernes', { sumPct: number; count: number }> = {
-      martes: { sumPct: 0, count: 0 },
-      viernes: { sumPct: 0, count: 0 },
+    let sumComputables = 0
+    // Ponderado igual que el global: se acumulan asistencias y denominadores,
+    // no promedios de promedios
+    const porDia: Record<'martes' | 'viernes', { asistieron: number; computables: number; count: number }> = {
+      martes: { asistieron: 0, computables: 0, count: 0 },
+      viernes: { asistieron: 0, computables: 0, count: 0 },
     }
 
     const tendencia: { fecha: string; porcentaje: number }[] = []
 
     for (const clase of clases) {
-      const presentes = clase.asistencias.filter((a) => a.estado === 'presente').length
-      const tardanzas = clase.asistencias.filter((a) => a.estado === 'tardanza').length
-      const ausentes = clase.asistencias.filter((a) => a.estado === 'ausente').length
-      const registros = presentes + tardanzas + ausentes
-      if (registros === 0) continue // Solo clases con asistencia tomada
+      if (clase.asistencias.length === 0) continue // Solo clases con asistencia tomada
 
-      const asistieron = presentes + tardanzas
-      const porcentaje = Math.round((asistieron / registros) * 100)
+      const stats = calcularStatsClase({ clase, talmidim, asistencias: clase.asistencias })
+      if (stats.totalComputables === 0) continue
 
+      const asistieron = stats.presentes + stats.tardanzas
       sumAsistieron += asistieron
-      sumRegistros += registros
+      sumComputables += stats.totalComputables
 
       tendencia.push({
         fecha: clase.fecha.toISOString().split('T')[0],
-        porcentaje,
+        porcentaje: stats.porcentaje,
       })
 
       if (clase.diaSemana === 'martes' || clase.diaSemana === 'viernes') {
-        porDia[clase.diaSemana].sumPct += porcentaje
+        porDia[clase.diaSemana].asistieron += asistieron
+        porDia[clase.diaSemana].computables += stats.totalComputables
         porDia[clase.diaSemana].count += 1
       }
     }
 
     const clasesConAsistencia = tendencia.length
     const porcentajeGlobal =
-      sumRegistros > 0 ? Math.round((sumAsistieron / sumRegistros) * 100) : 0
+      sumComputables > 0 ? Math.round((sumAsistieron / sumComputables) * 100) : 0
     const promedioPorClase =
       clasesConAsistencia > 0 ? Math.round(sumAsistieron / clasesConAsistencia) : 0
+
+    const resumenDia = (dia: 'martes' | 'viernes') => ({
+      count: porDia[dia].count,
+      porcentaje:
+        porDia[dia].computables > 0
+          ? Math.round((porDia[dia].asistieron / porDia[dia].computables) * 100)
+          : null,
+    })
 
     return NextResponse.json({
       porcentajeGlobal,
@@ -76,20 +98,8 @@ export async function GET() {
       // Solo los últimos MAX_TREND puntos para que el gráfico sea legible en mobile
       tendencia: tendencia.slice(-MAX_TREND),
       porDia: {
-        martes: {
-          count: porDia.martes.count,
-          porcentaje:
-            porDia.martes.count > 0
-              ? Math.round(porDia.martes.sumPct / porDia.martes.count)
-              : null,
-        },
-        viernes: {
-          count: porDia.viernes.count,
-          porcentaje:
-            porDia.viernes.count > 0
-              ? Math.round(porDia.viernes.sumPct / porDia.viernes.count)
-              : null,
-        },
+        martes: resumenDia('martes'),
+        viernes: resumenDia('viernes'),
       },
     })
   } catch (error) {

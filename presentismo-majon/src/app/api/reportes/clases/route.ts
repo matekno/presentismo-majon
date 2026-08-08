@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { calcularStatsClase } from '@/lib/asistencia'
 
 export async function GET() {
   try {
@@ -14,9 +15,17 @@ export async function GET() {
     const finDeHoy = new Date()
     finDeHoy.setHours(23, 59, 59, 999)
 
-    // Total de talmidim activos de la kitá (para contexto "X de Y")
-    const totalTalmidim = await prisma.talmid.count({
+    // Padrón de la kitá: quién debía estar en cada clase
+    const talmidim = await prisma.talmid.findMany({
       where: { activo: true, kitaId: session.kitaId },
+      select: {
+        id: true,
+        createdAt: true,
+        ausenciasProgramadas: {
+          where: { activa: true },
+          select: { fechaInicio: true, fechaFin: true },
+        },
+      },
     })
 
     // Clases pasadas/de hoy, no canceladas, de la kitá
@@ -30,20 +39,21 @@ export async function GET() {
       },
       include: {
         docentes: { include: { docente: true } },
-        asistencias: { select: { estado: true } },
+        asistencias: { select: { talmidId: true, estado: true } },
       },
       orderBy: { fecha: 'desc' },
     })
 
     const reportes = clases.map((clase) => {
-      const presentes = clase.asistencias.filter((a) => a.estado === 'presente').length
-      const tardanzas = clase.asistencias.filter((a) => a.estado === 'tardanza').length
-      const ausentes = clase.asistencias.filter((a) => a.estado === 'ausente').length
-      const totalRegistros = presentes + tardanzas + ausentes
-      const porcentajeAsistencia =
-        totalRegistros > 0
-          ? Math.round(((presentes + tardanzas) / totalRegistros) * 100)
-          : 0
+      // Sin asistencia tomada no hay nada que medir: el porcentaje sería 0%
+      // por un dato que falta cargar, no por inasistencia
+      const stats =
+        clase.asistencias.length > 0
+          ? calcularStatsClase({ clase, talmidim, asistencias: clase.asistencias })
+          : null
+      // Idem si todos los del padrón tenían ausencia programada: no queda nadie
+      // en el denominador y un 0% sería engañoso
+      const medible = (stats?.totalComputables ?? 0) > 0
 
       return {
         id: clase.id,
@@ -55,16 +65,18 @@ export async function GET() {
           nombre: cd.docente.nombre,
           apellido: cd.docente.apellido,
         })),
-        presentes,
-        tardanzas,
-        ausentes,
-        totalRegistros,
-        porcentajeAsistencia,
-        tieneAsistencias: totalRegistros > 0,
+        presentes: stats?.presentes ?? 0,
+        tardanzas: stats?.tardanzas ?? 0,
+        ausentes: stats?.ausentes ?? 0,
+        sinRegistro: stats?.sinRegistro ?? 0,
+        justificadas: stats?.justificadas ?? 0,
+        totalComputables: stats?.totalComputables ?? 0,
+        porcentajeAsistencia: stats?.porcentaje ?? 0,
+        tieneAsistencias: medible,
       }
     })
 
-    return NextResponse.json({ totalTalmidim, clases: reportes })
+    return NextResponse.json({ totalTalmidim: talmidim.length, clases: reportes })
   } catch (error) {
     console.error('Error fetching reporte por clase:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

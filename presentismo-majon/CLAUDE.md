@@ -187,6 +187,39 @@ npm run build                # Build de producción
 7. **Feedback**: Solo talmidim que asistieron pueden evaluar (no anónimo)
 8. **Kitot**: Cada mejané solo ve datos de su kitá (excepto feedback y docentes que son compartidos)
 9. **Clases compartidas**: Una clase puede asociarse a múltiples kitot para actos/eventos conjuntos
+10. **Porcentaje de asistencia**: Ver abajo. Todo cálculo pasa por `src/lib/asistencia.ts`
+
+---
+
+## Cálculo del Porcentaje de Asistencia
+
+Toda la lógica vive en `src/lib/asistencia.ts` (puro, usable desde cliente) y
+`src/lib/asistencia.server.ts` (la consulta). **No duplicar la fórmula en los endpoints.**
+
+```
+porcentaje = (presentes + tardanzas) / totalComputables
+```
+
+El denominador son las **clases que le correspondían al talmid**, no las veces que lo marcaron.
+Una clase computa si cumple todo esto:
+
+| Condición | Por qué |
+|-----------|---------|
+| Es de su kitá y no está cancelada | Al progresar de kitá no se arrastran los registros del año anterior |
+| Ya ocurrió (hasta hoy inclusive) | Las clases futuras no pueden bajar el porcentaje |
+| Se le tomó asistencia a alguien | Sin registros es un dato que falta cargar, no una inasistencia |
+| El talmid ya estaba de alta (`createdAt`) | Un talmid nuevo no arranca con ausencias que no le corresponden |
+| No está cubierta por una `AusenciaProgramada` activa | Ausencia avisada de antemano: sale del denominador |
+
+Casos particulares:
+
+- **Tardanza** cuenta como asistencia completa en el numerador (el detalle está en el reporte de tardanzas).
+- **Sin marcar** (`sinRegistro`): se tomó asistencia en la clase pero al talmid no lo marcaron. **Cuenta como ausencia** y se muestra aparte para poder auditarlo.
+- **Presente con ausencia programada**: si vino igual, computa como presente.
+- El campo `justificacion` de `Asistencia` **no** exime: es obligatorio para toda ausencia, así que descontarlo dejaría a todos en 100%.
+- Las fechas se comparan por día (`toDayKey`) porque las clases se guardan a medianoche local y las ausencias programadas a medianoche UTC.
+
+Los promedios globales (`/api/reportes/resumen`) son **ponderados** (suma de asistencias sobre suma de denominadores), incluido el corte martes/viernes.
 
 ---
 

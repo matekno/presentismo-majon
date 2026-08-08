@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { toDayKey } from '@/lib/asistencia'
 
 export async function GET(
   request: NextRequest,
@@ -55,13 +56,16 @@ export async function GET(
       clase.asistencias.map((a) => [a.talmidId, a])
     )
 
-    // Obtener ausencias programadas activas que incluyan la fecha de esta clase
-    const claseFecha = clase.fecha
+    // Obtener ausencias programadas activas que incluyan la fecha de esta clase.
+    // Se compara contra el día completo: las clases se guardan a medianoche
+    // local y las ausencias a medianoche UTC, así que comparar los Date crudos
+    // dejaba afuera a las ausencias de un solo día.
+    const claseKey = toDayKey(clase.fecha)
     const ausenciasProgramadas = await prisma.ausenciaProgramada.findMany({
       where: {
         activa: true,
-        fechaInicio: { lte: claseFecha },
-        fechaFin: { gte: claseFecha },
+        fechaInicio: { lte: new Date(`${claseKey}T23:59:59.999Z`) },
+        fechaFin: { gte: new Date(`${claseKey}T00:00:00.000Z`) },
       },
     })
 
@@ -70,7 +74,14 @@ export async function GET(
       ausenciasProgramadas.map((a) => [a.talmidId, a])
     )
 
-    // Crear lista completa con estado de asistencia y ausencias programadas
+    // Crear lista completa con estado de asistencia y ausencias programadas.
+    //
+    // `correspondeALaClase` marca a quién computar en los reportes: los que ya
+    // estaban de alta a esa fecha, más cualquiera con registro. Sin esto el %
+    // del detalle no coincidía con el del listado, que sí filtra por alta.
+    // La pantalla de tomar asistencia lo ignora a propósito y muestra a todos,
+    // para poder cargar una clase vieja aunque el talmid se haya dado de alta
+    // después.
     const listaAsistencia = talmidim.map((talmid) => {
       const asistencia = asistenciasMap.get(talmid.id)
       const ausenciaProgramada = ausenciasMap.get(talmid.id)
@@ -82,6 +93,7 @@ export async function GET(
         justificacion: asistencia?.justificacion || null,
         tieneAusenciaProgramada: !!ausenciaProgramada,
         ausenciaProgramadaJustificacion: ausenciaProgramada?.justificacion || null,
+        correspondeALaClase: !!asistencia || toDayKey(talmid.createdAt) <= claseKey,
       }
     })
 

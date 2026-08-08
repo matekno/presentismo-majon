@@ -96,13 +96,24 @@ export default function ReportesResumenPage() {
                 <div className="text-xs text-gray-500 mt-1">
                   {t('reportes.resumen.avgPerClass')}
                 </div>
+                {/* Es una cantidad de talmidim, no un %: sin la unidad se lee
+                    como porcentaje al lado de la tarjeta de asistencia global */}
+                <div className="text-[10px] text-gray-400">
+                  {t('reportes.resumen.avgPerClassUnit')}
+                </div>
               </div>
             </div>
 
             {/* Tendencia */}
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h2 className="font-semibold text-gray-800">{t('reportes.resumen.trend.title')}</h2>
-              <p className="text-xs text-gray-500 mb-3">{t('reportes.resumen.trend.subtitle')}</p>
+              <p className="text-xs text-gray-500 mb-3">
+                {t('reportes.resumen.trend.subtitle')}
+                {/* El gráfico se recorta a los últimos puntos: decirlo, si no
+                    parece que muestra todo el período */}
+                {tendencia.length < data.clasesConAsistencia &&
+                  ` · ${t('reportes.resumen.trend.truncated', { count: tendencia.length })}`}
+              </p>
               {tendencia.length === 0 ? (
                 <p className="text-sm text-gray-400">{t('reportes.resumen.trend.empty')}</p>
               ) : (
