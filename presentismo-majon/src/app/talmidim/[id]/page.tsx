@@ -178,6 +178,9 @@ export default function TalmidFichaPage({
         resetFotoStaging()
         await fetchTalmid()
         setEditMode(false)
+      } else {
+        const json = await res.json().catch(() => ({}))
+        alert(json.error || 'No se pudieron guardar los cambios')
       }
     } catch (error) {
       console.error('Error:', error)

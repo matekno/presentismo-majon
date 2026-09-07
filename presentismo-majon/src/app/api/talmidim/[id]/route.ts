@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { calcularStatsTalmid, detallarClasesTalmid, toDayKey } from '@/lib/asistencia'
@@ -111,6 +112,29 @@ export async function PUT(
     const body = await request.json()
     const { nombre, apellido, fechaNacimiento, telefono, email, activo } = body
 
+    // El formulario manda '' cuando el campo está vacío. Hay que guardarlo como
+    // NULL: Postgres considera distintos entre sí a los NULL, pero '' es un
+    // valor como cualquier otro y choca contra el unique de email.
+    const emailNormalizado =
+      email === undefined
+        ? undefined
+        : email?.trim()
+          ? email.trim().toLowerCase()
+          : null
+
+    if (emailNormalizado) {
+      const existente = await prisma.talmid.findUnique({
+        where: { email: emailNormalizado },
+        select: { id: true },
+      })
+      if (existente && existente.id !== id) {
+        return NextResponse.json(
+          { error: 'Ya existe un talmid con ese email' },
+          { status: 409 }
+        )
+      }
+    }
+
     const talmid = await prisma.talmid.update({
       where: {
         id,
@@ -121,7 +145,7 @@ export async function PUT(
         apellido: apellido || undefined,
         fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : undefined,
         telefono: telefono !== undefined ? telefono : undefined,
-        email: email !== undefined ? email : undefined,
+        email: emailNormalizado,
         activo: typeof activo === 'boolean' ? activo : undefined, // Reactivar baja
       },
     })
@@ -139,6 +163,16 @@ export async function PUT(
       },
     })
   } catch (error) {
+    // Red de seguridad por si dos ediciones simultáneas pasan el chequeo previo.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      return NextResponse.json(
+        { error: 'Ya existe un talmid con ese email' },
+        { status: 409 }
+      )
+    }
     console.error('Error updating talmid:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
