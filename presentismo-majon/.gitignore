@@ -45,3 +45,6 @@ prisma/dev.db-journal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Backups de la base (datos personales)
+backups/

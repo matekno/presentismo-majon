@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
-    "fotos:migrar": "npx tsx --env-file=.env.local prisma/migrate-fotos-r2.ts"
+    "db:backup": "npx tsx --env-file-if-exists=.env --env-file-if-exists=.env.local prisma/backup-db.ts",
+    "fotos:migrar": "npx tsx --env-file-if-exists=.env --env-file-if-exists=.env.local prisma/migrate-fotos-r2.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
