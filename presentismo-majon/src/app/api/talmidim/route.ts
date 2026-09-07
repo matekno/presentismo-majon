@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
+import { fotoUrlPublica } from '@/lib/foto'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
         fechaNacimiento: t.fechaNacimiento?.toISOString().split('T')[0] || null,
         telefono: t.telefono,
         email: t.email,
-        fotoUrl: t.fotoUrl,
+        fotoUrl: fotoUrlPublica(t),
         cantidadAsistencias: t._count.asistencias,
         cantidadNotas: t._count.notas,
       })),
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { nombre, apellido, fechaNacimiento, telefono, email, fotoUrl } = body
+    const { nombre, apellido, fechaNacimiento, telefono, email } = body
 
     // Nombre y apellido son obligatorios
     if (!nombre?.trim() || !apellido?.trim()) {
@@ -89,7 +90,6 @@ export async function POST(request: NextRequest) {
         fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : null,
         telefono: telefono?.trim() || null,
         email: emailNormalizado,
-        fotoUrl: fotoUrl || null,
         kitaId: session.kitaId, // Asignar a la kitá actual
       },
     })
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         fechaNacimiento: talmid.fechaNacimiento?.toISOString().split('T')[0] || null,
         telefono: talmid.telefono,
         email: talmid.email,
-        fotoUrl: talmid.fotoUrl,
+        fotoUrl: null,
         cantidadAsistencias: 0,
         cantidadNotas: 0,
       },

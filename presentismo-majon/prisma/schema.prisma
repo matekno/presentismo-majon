@@ -52,7 +52,8 @@ model Talmid {
   fechaNacimiento DateTime?
   telefono        String?
   email           String?      @unique
-  fotoUrl         String?
+  fotoUrl         String?                // legacy: base64 (migrado a fotoKey)
+  fotoKey         String?                // key del objeto en Cloudflare R2
   activo          Boolean      @default(true)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt

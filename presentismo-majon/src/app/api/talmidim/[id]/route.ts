@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { calcularStatsTalmid, detallarClasesTalmid, toDayKey } from '@/lib/asistencia'
 import { getClasesComputables } from '@/lib/asistencia.server'
+import { fotoUrlPublica } from '@/lib/foto'
 
 const MAX_HISTORIAL = 20
 
@@ -61,7 +62,7 @@ export async function GET(
         fechaNacimiento: talmid.fechaNacimiento?.toISOString().split('T')[0] || null,
         telefono: talmid.telefono,
         email: talmid.email,
-        fotoUrl: talmid.fotoUrl,
+        fotoUrl: fotoUrlPublica(talmid),
         activo: talmid.activo,
         createdAt: talmid.createdAt.toISOString(),
       },
@@ -108,7 +109,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { nombre, apellido, fechaNacimiento, telefono, email, fotoUrl, activo } = body
+    const { nombre, apellido, fechaNacimiento, telefono, email, activo } = body
 
     const talmid = await prisma.talmid.update({
       where: {
@@ -121,7 +122,6 @@ export async function PUT(
         fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : undefined,
         telefono: telefono !== undefined ? telefono : undefined,
         email: email !== undefined ? email : undefined,
-        fotoUrl: fotoUrl !== undefined ? fotoUrl : undefined,
         activo: typeof activo === 'boolean' ? activo : undefined, // Reactivar baja
       },
     })
@@ -135,7 +135,7 @@ export async function PUT(
         fechaNacimiento: talmid.fechaNacimiento?.toISOString().split('T')[0] || null,
         telefono: talmid.telefono,
         email: talmid.email,
-        fotoUrl: talmid.fotoUrl,
+        fotoUrl: fotoUrlPublica(talmid),
       },
     })
   } catch (error) {

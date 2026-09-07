@@ -4,6 +4,12 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Facehash } from 'facehash'
+import {
+  comprimirImagen,
+  validarArchivoDeImagen,
+  subirFotoTalmid,
+  borrarFotoTalmid,
+} from '@/lib/foto-client'
 
 const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b']
 
@@ -103,8 +109,10 @@ export default function TalmidFichaPage({
     fechaNacimiento: '',
     telefono: '',
     email: '',
-    fotoUrl: '',
   })
+  const [fotoBlob, setFotoBlob] = useState<Blob | null>(null)
+  const [fotoPreview, setFotoPreview] = useState('')
+  const [fotoEliminada, setFotoEliminada] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [showNotaForm, setShowNotaForm] = useState(false)
@@ -132,7 +140,6 @@ export default function TalmidFichaPage({
           fechaNacimiento: json.talmid.fechaNacimiento || '',
           telefono: json.talmid.telefono || '',
           email: json.talmid.email || '',
-          fotoUrl: json.talmid.fotoUrl || '',
         })
       }
     } catch (error) {
@@ -162,14 +169,36 @@ export default function TalmidFichaPage({
       })
 
       if (res.ok) {
+        // La foto va por su propia ruta (sube a R2), no por el PUT de datos.
+        if (fotoEliminada) {
+          await borrarFotoTalmid(id)
+        } else if (fotoBlob) {
+          await subirFotoTalmid(id, fotoBlob)
+        }
+        resetFotoStaging()
         await fetchTalmid()
         setEditMode(false)
       }
     } catch (error) {
       console.error('Error:', error)
+      alert('No se pudieron guardar los cambios')
     } finally {
       setSaving(false)
     }
+  }
+
+  const resetFotoStaging = () => {
+    setFotoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return ''
+    })
+    setFotoBlob(null)
+    setFotoEliminada(false)
+  }
+
+  const toggleEditMode = () => {
+    if (editMode) resetFotoStaging()
+    setEditMode(!editMode)
   }
 
   const handleDarDeBaja = async () => {
@@ -352,23 +381,21 @@ export default function TalmidFichaPage({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validar tipo de archivo
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor selecciona una imagen')
-      return
-    }
-
-    // Validar tamaño (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      alert('La imagen es muy grande. Maximo 2MB')
+    const errorValidacion = validarArchivoDeImagen(file)
+    if (errorValidacion) {
+      alert(errorValidacion)
       return
     }
 
     setUploadingPhoto(true)
     try {
-      // Comprimir y convertir a base64
-      const base64 = await compressAndConvertToBase64(file)
-      setFormData({ ...formData, fotoUrl: base64 })
+      const blob = await comprimirImagen(file)
+      setFotoBlob(blob)
+      setFotoEliminada(false)
+      setFotoPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return URL.createObjectURL(blob)
+      })
     } catch (error) {
       console.error('Error al procesar imagen:', error)
       alert('Error al procesar la imagen')
@@ -377,52 +404,13 @@ export default function TalmidFichaPage({
     }
   }
 
-  const compressAndConvertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          const canvas = document.createElement('canvas')
-          const MAX_SIZE = 400 // Tamaño maximo del lado mas largo
-
-          let width = img.width
-          let height = img.height
-
-          // Redimensionar manteniendo proporcion
-          if (width > height) {
-            if (width > MAX_SIZE) {
-              height = Math.round((height * MAX_SIZE) / width)
-              width = MAX_SIZE
-            }
-          } else {
-            if (height > MAX_SIZE) {
-              width = Math.round((width * MAX_SIZE) / height)
-              height = MAX_SIZE
-            }
-          }
-
-          canvas.width = width
-          canvas.height = height
-
-          const ctx = canvas.getContext('2d')
-          if (!ctx) {
-            reject(new Error('No canvas context'))
-            return
-          }
-
-          ctx.drawImage(img, 0, 0, width, height)
-
-          // Convertir a JPEG con calidad 0.8
-          const base64 = canvas.toDataURL('image/jpeg', 0.8)
-          resolve(base64)
-        }
-        img.onerror = () => reject(new Error('Error loading image'))
-        img.src = e.target?.result as string
-      }
-      reader.onerror = () => reject(new Error('Error reading file'))
-      reader.readAsDataURL(file)
+  const quitarFoto = () => {
+    setFotoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return ''
     })
+    setFotoBlob(null)
+    setFotoEliminada(true)
   }
 
   if (loading) {
@@ -461,7 +449,7 @@ export default function TalmidFichaPage({
               ← Volver
             </Link>
             <button
-              onClick={() => setEditMode(!editMode)}
+              onClick={toggleEditMode}
               className="text-indigo-200 hover:text-white text-sm"
             >
               {editMode ? 'Cancelar' : 'Editar'}
@@ -585,16 +573,16 @@ export default function TalmidFichaPage({
                   </label>
                   <div className="flex items-center gap-4">
                     {/* Preview */}
-                    {formData.fotoUrl ? (
+                    {fotoPreview || (!fotoEliminada && talmid.fotoUrl) ? (
                       <div className="relative">
                         <img
-                          src={formData.fotoUrl}
+                          src={fotoPreview || talmid.fotoUrl!}
                           alt="Preview"
                           className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
                         />
                         <button
                           type="button"
-                          onClick={() => setFormData({ ...formData, fotoUrl: '' })}
+                          onClick={quitarFoto}
                           className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

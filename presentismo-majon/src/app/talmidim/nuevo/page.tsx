@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Facehash } from 'facehash'
+import { comprimirImagen, validarArchivoDeImagen, subirFotoTalmid } from '@/lib/foto-client'
 
 const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b']
 
@@ -15,8 +16,10 @@ export default function NuevoTalmidPage() {
     fechaNacimiento: '',
     telefono: '',
     email: '',
-    fotoUrl: '',
   })
+  // La foto se sube recién después de crear el talmid (la ruta necesita su id).
+  const [fotoBlob, setFotoBlob] = useState<Blob | null>(null)
+  const [fotoPreview, setFotoPreview] = useState('')
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [error, setError] = useState('')
@@ -25,20 +28,20 @@ export default function NuevoTalmidPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor selecciona una imagen')
-      return
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert('La imagen es muy grande. Maximo 2MB')
+    const errorValidacion = validarArchivoDeImagen(file)
+    if (errorValidacion) {
+      alert(errorValidacion)
       return
     }
 
     setUploadingPhoto(true)
     try {
-      const base64 = await compressAndConvertToBase64(file)
-      setFormData((prev) => ({ ...prev, fotoUrl: base64 }))
+      const blob = await comprimirImagen(file)
+      setFotoBlob(blob)
+      setFotoPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return URL.createObjectURL(blob)
+      })
     } catch (error) {
       console.error('Error al procesar imagen:', error)
       alert('Error al procesar la imagen')
@@ -47,50 +50,10 @@ export default function NuevoTalmidPage() {
     }
   }
 
-  const compressAndConvertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          const canvas = document.createElement('canvas')
-          const MAX_SIZE = 400
-
-          let width = img.width
-          let height = img.height
-
-          if (width > height) {
-            if (width > MAX_SIZE) {
-              height = Math.round((height * MAX_SIZE) / width)
-              width = MAX_SIZE
-            }
-          } else {
-            if (height > MAX_SIZE) {
-              width = Math.round((width * MAX_SIZE) / height)
-              height = MAX_SIZE
-            }
-          }
-
-          canvas.width = width
-          canvas.height = height
-
-          const ctx = canvas.getContext('2d')
-          if (!ctx) {
-            reject(new Error('No canvas context'))
-            return
-          }
-
-          ctx.drawImage(img, 0, 0, width, height)
-
-          const base64 = canvas.toDataURL('image/jpeg', 0.8)
-          resolve(base64)
-        }
-        img.onerror = () => reject(new Error('Error loading image'))
-        img.src = e.target?.result as string
-      }
-      reader.onerror = () => reject(new Error('Error reading file'))
-      reader.readAsDataURL(file)
-    })
+  const quitarFoto = () => {
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview)
+    setFotoBlob(null)
+    setFotoPreview('')
   }
 
   const handleSave = async () => {
@@ -111,6 +74,15 @@ export default function NuevoTalmidPage() {
       const json = await res.json()
 
       if (res.ok) {
+        if (fotoBlob) {
+          try {
+            await subirFotoTalmid(json.talmid.id, fotoBlob)
+          } catch (error) {
+            // El talmid ya existe: avisamos pero igual lo abrimos para no perder la carga.
+            console.error('Error al subir la foto:', error)
+            alert('El talmid se creó, pero la foto no se pudo subir. Podés reintentarlo desde su ficha.')
+          }
+        }
         router.push(`/talmidim/${json.talmid.id}`)
       } else {
         setError(json.error || 'Error al guardar')
@@ -147,16 +119,16 @@ export default function NuevoTalmidPage() {
               Foto
             </label>
             <div className="flex items-center gap-4">
-              {formData.fotoUrl ? (
+              {fotoPreview ? (
                 <div className="relative">
                   <img
-                    src={formData.fotoUrl}
+                    src={fotoPreview}
                     alt="Preview"
                     className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
                   />
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, fotoUrl: '' })}
+                    onClick={quitarFoto}
                     className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
